@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
 export function Auth() {
   const [isRegistering, setIsRegistering] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -12,12 +14,35 @@ export function Auth() {
   const [authError, setAuthError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Ascolta il link di reset password inviato via email
+  useEffect(() => {
+    supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResettingPassword(true)
+      }
+    })
+  }, [])
+
   async function handleLogin(e) {
     e.preventDefault()
     setAuthError('')
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) setAuthError(error.message)
+    setLoading(false)
+  }
+
+  async function handleUpdatePassword(e) {
+    e.preventDefault()
+    setAuthError('')
+    setLoading(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      setAuthError(error.message)
+    } else {
+      alert('Password aggiornata con successo! Ora puoi accedere.')
+      setIsResettingPassword(false)
+    }
     setLoading(false)
   }
 
@@ -53,6 +78,31 @@ export function Auth() {
     }
   }
 
+  // Vista 1: Impostazione Nuova Password (dopo aver cliccato l'email)
+  if (isResettingPassword) {
+    return (
+      <div style={containerStyle}>
+        <h1 style={{ textAlign: 'center', color: '#E53935', marginTop: '40px' }}>Nuova Password</h1>
+        <p style={{ textAlign: 'center', color: '#AAA' }}>Inserisci la tua nuova password per il tuo account.</p>
+        {authError && <div style={errorBoxStyle}>{authError}</div>}
+        <form onSubmit={handleUpdatePassword} style={formStyle}>
+          <input 
+            type="password" 
+            placeholder="Nuova Password" 
+            value={newPassword} 
+            onChange={e => setNewPassword(e.target.value)} 
+            required 
+            style={inputStyle} 
+          />
+          <button type="submit" disabled={loading} style={btnPrimaryStyle}>
+            {loading ? 'Salvataggio...' : 'Salva Nuova Password'}
+          </button>
+        </form>
+      </div>
+    )
+  }
+
+  // Vista 2: Login o Registrazione
   return (
     <div style={containerStyle}>
       <h1 style={{ textAlign: 'center', color: '#E53935', marginTop: '40px', marginBottom: '5px' }}>31Th Street</h1>
@@ -98,4 +148,3 @@ const btnPrimaryStyle = { width: '100%', padding: '12px', borderRadius: '6px', b
 const errorBoxStyle = { background: '#E53935', color: '#FFF', padding: '10px', borderRadius: '6px', marginBottom: '15px' }
 const linkTextStyle = { textAlign: 'center', color: '#AAA' }
 const linkStyle = { color: '#1E88E5', cursor: 'pointer', textDecoration: 'underline' }
-
