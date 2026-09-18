@@ -14,7 +14,6 @@ export function Auth() {
   const [authError, setAuthError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Ascolta il link di reset password inviato via email
   useEffect(() => {
     supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
@@ -78,11 +77,10 @@ export function Auth() {
     }
   }
 
-  // Vista 1: Impostazione Nuova Password (dopo aver cliccato l'email)
   if (isResettingPassword) {
     return (
       <div style={containerStyle}>
-        <h1 style={{ textAlign: 'center', color: '#E53935', marginTop: '40px' }}>Nuova Password</h1>
+        <h1 style={{ textAlign: 'center', color: '#FFFFFF', marginTop: '40px' }}>Nuova Password</h1>
         <p style={{ textAlign: 'center', color: '#AAA' }}>Inserisci la tua nuova password per il tuo account.</p>
         {authError && <div style={errorBoxStyle}>{authError}</div>}
         <form onSubmit={handleUpdatePassword} style={formStyle}>
@@ -102,11 +100,10 @@ export function Auth() {
     )
   }
 
-  // Vista 2: Login o Registrazione
   return (
     <div style={containerStyle}>
-      <h1 style={{ textAlign: 'center', color: '#E53935', marginTop: '40px', marginBottom: '5px' }}>31Th Street</h1>
-      <h4 style={{ textAlign: 'center', color: '#AAA', marginTop: 0, marginBottom: '30px' }}>Barber Shop</h4>
+      <h1 style={{ textAlign: 'center', color: '#FFFFFF', marginTop: '40px', marginBottom: '0px', fontSize: '36px', letterSpacing: '2px' }}>31Th Street</h1>
+      <h4 style={{ textAlign: 'center', color: '#D32F2F', marginTop: '5px', marginBottom: '30px', fontWeight: 'bold' }}>BARBER SHOP</h4>
 
       {authError && <div style={errorBoxStyle}>{authError}</div>}
 
@@ -141,10 +138,10 @@ export function Auth() {
   )
 }
 
-const containerStyle = { backgroundColor: '#121212', color: '#FFF', minHeight: '100vh', padding: '20px', maxWidth: '450px', margin: '0 auto', fontFamily: 'sans-serif' }
+const containerStyle = { backgroundColor: '#0A0A0A', color: '#FFF', minHeight: '100vh', padding: '20px', maxWidth: '450px', margin: '0 auto', fontFamily: 'sans-serif' }
 const formStyle = { display: 'flex', flexDirection: 'column', gap: '12px' }
-const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #333', backgroundColor: '#1E1E1E', color: '#FFF', boxSizing: 'border-box' }
-const btnPrimaryStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#E53935', color: '#FFF', fontWeight: 'bold', cursor: 'pointer' }
-const errorBoxStyle = { background: '#E53935', color: '#FFF', padding: '10px', borderRadius: '6px', marginBottom: '15px' }
+const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #2A2A2A', backgroundColor: '#1A1A1A', color: '#FFF', boxSizing: 'border-box' }
+const btnPrimaryStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#D32F2F', color: '#FFF', fontWeight: 'bold', cursor: 'pointer' }
+const errorBoxStyle = { background: '#D32F2F', color: '#FFF', padding: '10px', borderRadius: '6px', marginBottom: '15px' }
 const linkTextStyle = { textAlign: 'center', color: '#AAA' }
-const linkStyle = { color: '#1E88E5', cursor: 'pointer', textDecoration: 'underline' }
+const linkStyle = { color: '#FFFFFF', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }
