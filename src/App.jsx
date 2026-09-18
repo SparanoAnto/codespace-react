@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient'
 import { Auth } from './components/Auth'
 import { BookingView } from './components/BookingView'
 import { Navigation } from './components/Navigation'
+import { AdminApprovals } from './components/AdminApprovals'
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -12,6 +13,7 @@ export default function App() {
 
   const [services, setServices] = useState([])
   const [barbers, setBarbers] = useState([])
+  const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,8 +35,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (session && profile?.is_approved) {
+    if (session && (profile?.is_approved || profile?.role === 'admin')) {
       loadSaloneData()
+    }
+    if (session && profile?.role === 'admin') {
+      fetchPendingCount()
     }
   }, [session, profile])
 
@@ -49,6 +54,15 @@ export default function App() {
     }
   }
 
+  async function fetchPendingCount() {
+    const { count, error } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_approved', false)
+
+    if (!error) setPendingCount(count || 0)
+  }
+
   async function loadSaloneData() {
     const { data: sData } = await supabase.from('services').select('*')
     const { data: bData } = await supabase.from('barbers').select('*').eq('is_active', true)
@@ -57,7 +71,11 @@ export default function App() {
   }
 
   if (loading) {
-    return <div style={{ backgroundColor: '#0A0A0A', color: '#FFFFFF', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Caricamento 31Th Street...</div>
+    return (
+      <div style={{ backgroundColor: '#0A0A0A', color: '#FFFFFF', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        Caricamento 31Th Street...
+      </div>
+    )
   }
 
   if (!session) return <Auth />
@@ -121,12 +139,17 @@ export default function App() {
         {activeTab === 'admin' && profile?.role === 'admin' && (
           <div>
             <h3 style={{ color: '#1A3B8B' }}>⚙️ Pannello Admin</h3>
-            <p style={{ color: '#AAA' }}>Gestione approvazioni e appuntamenti.</p>
+            <AdminApprovals onApprovalChange={fetchPendingCount} />
           </div>
         )}
       </div>
 
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={profile?.role === 'admin'} />
+      <Navigation 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        isAdmin={profile?.role === 'admin'} 
+        pendingCount={pendingCount}
+      />
     </div>
   )
 }
