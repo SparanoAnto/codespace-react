@@ -121,7 +121,7 @@ export default function App() {
           </div>
         )}
 
-        {{activeTab === 'appointments' && (
+        {activeTab === 'appointments' && (
           <AppointmentsView userId={session.user.id} />
         )}
 
