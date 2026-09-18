@@ -4,14 +4,21 @@ import { supabase } from '../supabaseClient'
 export function AppointmentsView({ userId }) {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState(null)
 
   useEffect(() => {
-    if (userId) fetchAppointments()
+    if (userId) {
+      fetchAppointments()
+    } else {
+      setLoading(false)
+    }
   }, [userId])
 
   async function fetchAppointments() {
     setLoading(true)
-    // Recupera gli appuntamenti includendo i dettagli del servizio e del barbiere
+    setErrorMsg(null)
+
+    // Tentativo con JOIN sulle tabelle correlate
     const { data, error } = await supabase
       .from('appointments')
       .select('*, services(name, price), barbers(name)')
@@ -19,14 +26,31 @@ export function AppointmentsView({ userId }) {
       .order('appointment_date', { ascending: false })
 
     if (error) {
-      console.error('Errore durante il recupero degli appuntamenti:', error.message)
+      console.error('Errore fetch appuntamenti:', error.message)
+      setErrorMsg(error.message)
     } else {
       setAppointments(data || [])
     }
     setLoading(false)
   }
 
-  if (loading) return <p style={{ color: '#AAA' }}>Caricamento prenotazioni...</p>
+  if (loading) {
+    return <p style={{ color: '#AAA' }}>Caricamento prenotazioni...</p>
+  }
+
+  if (errorMsg) {
+    return (
+      <div>
+        <h3>📅 Le Tue Prenotazioni</h3>
+        <p style={{ color: '#D32F2F', fontSize: '14px' }}>
+          Errore nel recupero dati: {errorMsg}
+        </p>
+        <p style={{ color: '#888', fontSize: '12px' }}>
+          Verifica che su Supabase le colonne user_id, service_id e barber_id siano Foreign Keys valide.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -47,17 +71,19 @@ export function AppointmentsView({ userId }) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
               <span style={{ fontWeight: 'bold', fontSize: '16px' }}>
-                {item.services?.name || 'Servizio'}
+                {item.services?.name || 'Servizio Prenotato'}
               </span>
-              <span style={{ color: '#D32F2F', fontWeight: 'bold' }}>
-                {item.services?.price ? `${item.services.price}€` : ''}
-              </span>
+              {item.services?.price && (
+                <span style={{ color: '#D32F2F', fontWeight: 'bold' }}>
+                  {item.services.price}€
+                </span>
+              )}
             </div>
             <p style={{ margin: '3px 0', fontSize: '13px', color: '#AAA' }}>
               💈 Barbiere: {item.barbers?.name || 'Non specificato'}
             </p>
             <p style={{ margin: '3px 0', fontSize: '13px', color: '#AAA' }}>
-              📅 Data: {item.appointment_date} - {item.appointment_time}
+              📅 Data: {item.appointment_date || 'N/D'} {item.appointment_time ? `- ${item.appointment_time}` : ''}
             </p>
           </div>
         ))
@@ -65,4 +91,3 @@ export function AppointmentsView({ userId }) {
     </div>
   )
 }
-I
