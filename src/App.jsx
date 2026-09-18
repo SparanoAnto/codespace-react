@@ -4,6 +4,8 @@ import { Auth } from './components/Auth'
 import { BookingView } from './components/BookingView'
 import { Navigation } from './components/Navigation'
 import { AdminApprovals } from './components/AdminApprovals'
+import { AppointmentsView } from './components/AppointmentsView'
+
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -119,11 +121,8 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'appointments' && (
-          <div>
-            <h3>📅 Le Tue Prenotazioni</h3>
-            <p style={{ color: '#AAA' }}>Qui vedrai lo storico dei tuoi appuntamenti.</p>
-          </div>
+        {{activeTab === 'appointments' && (
+          <AppointmentsView userId={session.user.id} />
         )}
 
         {activeTab === 'profile' && (
