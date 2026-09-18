@@ -67,8 +67,8 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
             <div key={s.id} onClick={() => toggleService(s)} style={{
               padding: '12px',
               borderRadius: '8px',
-              border: isSelected ? '2px solid #E53935' : '1px solid #333',
-              backgroundColor: isSelected ? '#2A1212' : '#1E1E1E',
+              border: isSelected ? '2px solid #D32F2F' : '1px solid #2A2A2A',
+              backgroundColor: isSelected ? '#2C1212' : '#1A1A1A',
               cursor: 'pointer',
               display: 'flex',
               justifyContent: 'space-between',
@@ -78,7 +78,7 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
                 <strong>{s.name}</strong>
                 <div style={{ fontSize: '12px', color: '#AAA' }}>{s.duration_minutes} min</div>
               </div>
-              <div style={{ color: '#E53935', fontWeight: 'bold' }}>€{parseFloat(s.price).toFixed(2)}</div>
+              <div style={{ color: '#D32F2F', fontWeight: 'bold' }}>€{parseFloat(s.price).toFixed(2)}</div>
             </div>
           )
         })}
@@ -86,7 +86,7 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
 
       {selectedServices.length > 0 && (
         <>
-          <div style={{ padding: '12px', background: '#1E1E1E', borderLeft: '4px solid #E53935', borderRadius: '4px', marginBottom: '20px' }}>
+          <div style={{ padding: '12px', background: '#1A1A1A', borderLeft: '4px solid #D32F2F', borderRadius: '4px', marginBottom: '20px' }}>
             <strong>Riepilogo: {totalDuration} min | €{totalPrice.toFixed(2)}</strong>
           </div>
 
@@ -102,8 +102,8 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
                     flex: 1,
                     padding: '12px',
                     borderRadius: '6px',
-                    border: selectedBarber?.id === b.id ? '2px solid #1E88E5' : '1px solid #333',
-                    backgroundColor: selectedBarber?.id === b.id ? '#122030' : '#1E1E1E',
+                    border: selectedBarber?.id === b.id ? '2px solid #1A3B8B' : '1px solid #2A2A2A',
+                    backgroundColor: selectedBarber?.id === b.id ? '#10224D' : '#1A1A1A',
                     color: '#FFF',
                     cursor: 'pointer',
                     fontWeight: 'bold'
@@ -123,8 +123,8 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
                   <button key={slot} onClick={() => setSelectedTime(slot)} style={{
                     padding: '10px',
                     borderRadius: '6px',
-                    border: selectedTime === slot ? '2px solid #E53935' : '1px solid #333',
-                    backgroundColor: selectedTime === slot ? '#E53935' : '#1E1E1E',
+                    border: selectedTime === slot ? '2px solid #D32F2F' : '1px solid #2A2A2A',
+                    backgroundColor: selectedTime === slot ? '#D32F2F' : '#1A1A1A',
                     color: '#FFF',
                     cursor: 'pointer'
                   }}>
@@ -142,5 +142,5 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
   )
 }
 
-const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #333', backgroundColor: '#1E1E1E', color: '#FFF', boxSizing: 'border-box' }
-const btnPrimaryStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#E53935', color: '#FFF', fontWeight: 'bold', cursor: 'pointer' }
+const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #2A2A2A', backgroundColor: '#1A1A1A', color: '#FFF', boxSizing: 'border-box' }
+const btnPrimaryStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#D32F2F', color: '#FFF', fontWeight: 'bold', cursor: 'pointer' }
