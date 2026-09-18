@@ -13,7 +13,6 @@ export default function App() {
   const [services, setServices] = useState([])
   const [barbers, setBarbers] = useState([])
 
-  // Gestione Sessione Supabase
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -33,7 +32,6 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Caricamento Dati Salone
   useEffect(() => {
     if (session && profile?.is_approved) {
       loadSaloneData()
@@ -59,31 +57,28 @@ export default function App() {
   }
 
   if (loading) {
-    return <div style={{ backgroundColor: '#121212', color: '#E53935', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Caricamento 31Th Street...</div>
+    return <div style={{ backgroundColor: '#0A0A0A', color: '#FFFFFF', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Caricamento 31Th Street...</div>
   }
 
-  // 1. Schermata Autenticazione (se non loggato)
   if (!session) return <Auth />
 
-  // 2. Schermata Account Non Approvato
   if (profile && !profile.is_approved && profile.role !== 'admin') {
     return (
-      <div style={{ backgroundColor: '#121212', color: '#FFF', height: '100vh', padding: '30px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <h2 style={{ color: '#E53935' }}>Account in Attesa</h2>
+      <div style={{ backgroundColor: '#0A0A0A', color: '#FFF', height: '100vh', padding: '30px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <h2 style={{ color: '#D32F2F' }}>Account in Attesa</h2>
         <p>Ciao <strong>{profile.first_name}</strong>, la tua registrazione è attiva. Un amministratore deve convalidare il tuo account prima che tu possa prenotare.</p>
-        <button onClick={() => supabase.auth.signOut()} style={{ marginTop: '20px', padding: '10px', background: 'transparent', border: '1px solid #E53935', color: '#E53935', borderRadius: '6px', cursor: 'pointer' }}>Esci</button>
+        <button onClick={() => supabase.auth.signOut()} style={{ marginTop: '20px', padding: '10px', background: 'transparent', border: '1px solid #D32F2F', color: '#D32F2F', borderRadius: '6px', cursor: 'pointer' }}>Esci</button>
       </div>
     )
   }
 
-  // 3. Vista Principale
   return (
-    <div style={{ backgroundColor: '#121212', color: '#FFF', minHeight: '100vh', paddingBottom: '80px', maxWidth: '500px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+    <div style={{ backgroundColor: '#0A0A0A', color: '#FFF', minHeight: '100vh', paddingBottom: '80px', maxWidth: '500px', margin: '0 auto', fontFamily: 'sans-serif' }}>
       
       {/* Header */}
-      <div style={{ padding: '15px 20px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ color: '#E53935', margin: 0 }}>31Th Street</h2>
-        {profile?.role === 'admin' && <span style={{ background: '#1E88E5', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>ADMIN</span>}
+      <div style={{ padding: '15px 20px', borderBottom: '1px solid #2A2A2A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ color: '#FFFFFF', margin: 0, letterSpacing: '1px' }}>31Th Street</h2>
+        {profile?.role === 'admin' && <span style={{ background: '#1A3B8B', color: '#FFF', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>ADMIN</span>}
       </div>
 
       {/* Contenuto dinamico */}
@@ -102,7 +97,7 @@ export default function App() {
             <h3>📍 Dove Siamo</h3>
             <p style={{ color: '#BBB' }}>Via 31Th Street, Napoli</p>
             <p style={{ color: '#BBB' }}>📞 Tel: +39 081 000000</p>
-            <p style={{ color: '#E53935', fontWeight: 'bold' }}>Chiuso il Lunedì</p>
+            <p style={{ color: '#D32F2F', fontWeight: 'bold' }}>Chiuso il Lunedì</p>
           </div>
         )}
 
@@ -119,19 +114,18 @@ export default function App() {
             <p><strong>Nome:</strong> {profile?.first_name} {profile?.last_name}</p>
             <p><strong>Email:</strong> {profile?.email}</p>
             <p><strong>Telefono:</strong> {profile?.phone}</p>
-            <button onClick={() => supabase.auth.signOut()} style={{ marginTop: '20px', width: '100%', padding: '10px', background: 'transparent', border: '1px solid #E53935', color: '#E53935', borderRadius: '6px', cursor: 'pointer' }}>Disconnettiti</button>
+            <button onClick={() => supabase.auth.signOut()} style={{ marginTop: '20px', width: '100%', padding: '12px', background: 'transparent', border: '1px solid #D32F2F', color: '#D32F2F', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Disconnettiti</button>
           </div>
         )}
 
         {activeTab === 'admin' && profile?.role === 'admin' && (
           <div>
-            <h3 style={{ color: '#1E88E5' }}>⚙️ Pannello Admin</h3>
+            <h3 style={{ color: '#1A3B8B' }}>⚙️ Pannello Admin</h3>
             <p style={{ color: '#AAA' }}>Gestione approvazioni e appuntamenti.</p>
           </div>
         )}
       </div>
 
-      {/* Barra di Navigazione */}
       <Navigation activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={profile?.role === 'admin'} />
     </div>
   )
