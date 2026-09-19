@@ -16,6 +16,7 @@ export default function App() {
   const [barbers, setBarbers] = useState([])
   const [pendingCount, setPendingCount] = useState(0)
 
+  // Stato per l'appuntamento in corso di modifica
   const [editingAppointment, setEditingAppointment] = useState(null)
 
   useEffect(() => {
@@ -73,9 +74,10 @@ export default function App() {
     if (bData) setBarbers(bData)
   }
 
+  // Funzione chiamata quando si clicca su "Modifica / Integra"
   const handleStartEdit = (appointment) => {
     setEditingAppointment(appointment)
-    setActiveTab('services')
+    setActiveTab('services') // Passa alla schermata di prenotazione/modifica
   }
 
   const handleBookingSuccess = () => {
