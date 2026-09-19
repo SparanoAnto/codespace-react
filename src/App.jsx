@@ -14,30 +14,42 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('services')
 
-  // Stato per la gestione del reset password da link email
+  // Stato per il reset password
   const [isResettingPassword, setIsResettingPassword] = useState(false)
 
-  // Stato per navigare tra Approvazioni e Report dentro la sezione Admin
+  // Sub-tab Admin
   const [adminSubTab, setAdminSubTab] = useState('approvals')
 
   const [services, setServices] = useState([])
   const [barbers, setBarbers] = useState([])
   const [pendingCount, setPendingCount] = useState(0)
 
-  // Stato per l'appuntamento in corso di modifica
   const [editingAppointment, setEditingAppointment] = useState(null)
 
   useEffect(() => {
+    // 🔍 CONTROLLO DIRETTO DELL'URL PER IL RESET PASSWORD
+    const hash = window.location.hash
+    const search = window.location.search
+
+    if (
+      hash.includes('type=recovery') || 
+      search.includes('type=recovery') || 
+      hash.includes('access_token')
+    ) {
+      setIsResettingPassword(true)
+    }
+
+    // 1. Recupero sessione iniziale
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session) fetchProfile(session.user.id)
       else setLoading(false)
     })
 
+    // 2. Ascolto dei cambiamenti di stato Auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
 
-      // 🔴 Intercetta il link di recupero password prima di entrare in app
       if (event === 'PASSWORD_RECOVERY') {
         setIsResettingPassword(true)
       }
@@ -108,20 +120,24 @@ export default function App() {
     )
   }
 
-  // 🔑 1. Se l'utente arriva dal link di reset password, forziamo la schermata di Auth per l'aggiornamento
+  // 🔴 PRIORITÀ ASSOLUTA: Se nell'URL o negli eventi c'è una richiesta di reset, mostra la form per la nuova password
   if (isResettingPassword) {
     return (
       <Auth 
         isResettingPasswordProps={true} 
-        onPasswordUpdated={() => setIsResettingPassword(false)} 
+        onPasswordUpdated={() => {
+          setIsResettingPassword(false)
+          // Puliamo l'URL rimuovendo l'hash/parametri di recupero
+          window.history.replaceState({}, document.title, window.location.pathname)
+        }} 
       />
     )
   }
 
-  // 🔑 2. Se l'utente non ha una sessione attiva, mostra la schermata Auth
+  // 🟢 Se l'utente non è loggato
   if (!session) return <Auth />
 
-  // 🔑 3. Blocco per utenti non ancora approvati dall'admin
+  // 🟡 Se l'utente non è ancora approvato
   if (profile && !profile.is_approved && profile.role !== 'admin') {
     return (
       <div className="app-container" style={{ padding: '30px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
@@ -140,10 +156,8 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Barra grigia in cima */}
       <div className="top-banner" />
 
-      {/* Header */}
       <div className="header-brand">
         <div>
           <h2 className="brand-title">
@@ -154,7 +168,6 @@ export default function App() {
         {profile?.role === 'admin' && <span className="admin-badge">ADMIN</span>}
       </div>
 
-      {/* Contenuto dinamico */}
       <div style={{ padding: '20px', position: 'relative', zIndex: 1 }}>
         {activeTab === 'services' && (
           <BookingView 
@@ -201,10 +214,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab Pannello Admin con sotto-schede per Gestione e Report */}
         {activeTab === 'admin' && profile?.role === 'admin' && (
           <div>
-            {/* Menu Sotto-schede Admin */}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
               <button
                 onClick={() => setAdminSubTab('approvals')}
@@ -243,7 +254,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Switch tra viste admin */}
             {adminSubTab === 'approvals' ? (
               <div>
                 <h3 className="section-title">Pannello Approvazioni</h3>
