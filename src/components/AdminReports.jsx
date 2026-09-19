@@ -209,7 +209,7 @@ export function AdminReports() {
 
           {/* NUOVA SEZIONE: Incassi per Operatore */}
           <div className="info-card">
-            <h3 style={sectionHeaderStyle}>💈 Rendimento Operatori</h3>
+            <h3 style={sectionHeaderStyle}>💈 Produttività Operatori</h3>
             {stats.barberRevenue.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Nessun dato per questo mese.</p>
             ) : (
