@@ -15,8 +15,9 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
   const [phone, setPhone] = useState('')
   const [age, setAge] = useState('')
   
-  // Stato per il consenso Privacy
+  // Stati per la Privacy
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false)
 
   const [authError, setAuthError] = useState('')
   const [authSuccess, setAuthSuccess] = useState('')
@@ -79,7 +80,6 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
     setAuthError('')
     setAuthSuccess('')
 
-    // CONTROLLO PRIVACY OBBILGATORIO
     if (!privacyAccepted) {
       setAuthError("Devi accettare l'Informativa sulla Privacy per poter creare un account.")
       return
@@ -114,7 +114,6 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
     }
   }
 
-  // VISTA 1: Form Impostazione Nuova Password (dalla mail)
   if (isResettingPassword) {
     return (
       <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -142,7 +141,6 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
     )
   }
 
-  // VISTA 2: Form Richiesta Reset via Email
   if (isForgotPassword) {
     return (
       <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -175,7 +173,6 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
     )
   }
 
-  // VISTA 3: Login e Registrazione Standard
   return (
     <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
       
@@ -221,7 +218,7 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
             <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
             <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
             
-            {/* CHECKBOX PRIVACY */}
+            {/* CHECKBOX E LINK PRIVACY */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '5px 0' }}>
               <input 
                 type="checkbox" 
@@ -231,7 +228,16 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
                 style={{ cursor: 'pointer', width: '16px', height: '16px' }}
               />
               <label htmlFor="privacy" style={{ color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer' }}>
-                Ho letto e accetto l'<strong>Informativa sulla Privacy</strong>
+                Ho letto e accetto l'
+                <span 
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setShowPrivacyModal(true)
+                  }}
+                  style={{ color: '#FFF', textDecoration: 'underline', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Informativa sulla Privacy
+                </span>
               </label>
             </div>
 
@@ -244,6 +250,59 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
           </form>
         )}
       </div>
+
+      {/* MODALE INFORMATIVA PRIVACY */}
+      {showPrivacyModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          zIndex: 1000,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#1c1c1e',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            padding: '20px',
+            maxWidth: '500px',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            color: '#FFF'
+          }}>
+            <h3 style={{ color: 'var(--barber-red)', marginTop: 0 }}>Informativa sulla Privacy</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+              Ai sensi del Regolamento UE 2016/679 (GDPR), informiamo che i dati raccolti (Nome, Cognome, Età, Telefono, Email) vengono trattati esclusivamente per consentire la gestione delle prenotazioni e dell'account utente presso <strong>31th Street Barber Shop</strong>.
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+              I dati sono conservati in modo sicuro e non verranno ceduti a terzi. Puoi richiedere la cancellazione del tuo profilo e dei relativi dati in qualsiasi momento all'interno della sezione <em>Profilo</em> dell'applicazione.
+            </p>
+            <button 
+              onClick={() => setShowPrivacyModal(false)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: 'var(--barber-red)',
+                color: '#FFF',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginTop: '15px'
+              }}
+            >
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
