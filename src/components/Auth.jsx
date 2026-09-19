@@ -15,6 +15,9 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
   const [phone, setPhone] = useState('')
   const [age, setAge] = useState('')
   
+  // Stato per il consenso Privacy
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
+
   const [authError, setAuthError] = useState('')
   const [authSuccess, setAuthSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -75,6 +78,13 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
     e.preventDefault()
     setAuthError('')
     setAuthSuccess('')
+
+    // CONTROLLO PRIVACY OBBILGATORIO
+    if (!privacyAccepted) {
+      setAuthError("Devi accettare l'Informativa sulla Privacy per poter creare un account.")
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -210,6 +220,21 @@ export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
             <input type="tel" placeholder="Cellulare" value={phone} onChange={e => setPhone(e.target.value)} required style={inputStyle} />
             <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
             <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
+            
+            {/* CHECKBOX PRIVACY */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '5px 0' }}>
+              <input 
+                type="checkbox" 
+                id="privacy" 
+                checked={privacyAccepted} 
+                onChange={e => setPrivacyAccepted(e.target.checked)} 
+                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+              />
+              <label htmlFor="privacy" style={{ color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer' }}>
+                Ho letto e accetto l'<strong>Informativa sulla Privacy</strong>
+              </label>
+            </div>
+
             <button type="submit" disabled={loading} style={btnPrimaryStyle}>
               {loading ? 'Registrazione...' : 'Crea Account'}
             </button>
