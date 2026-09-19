@@ -82,7 +82,44 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
     }
   }
 
-  async function handleCancelAppointment(appointmentId) {
+  /**
+   * Helper per verificare le regole di modifica/annullamento
+   */
+  function checkAppointmentPermissions(startTime) {
+    if (isAdmin) return { canModify: true, canCancel: true, reason: '' }
+
+    const now = new Date().getTime()
+    const start = new Date(startTime).getTime()
+    const diffMs = start - now
+    const fifteenMinutesMs = 15 * 60 * 1000
+
+    if (diffMs <= 0) {
+      return {
+        canModify: false,
+        canCancel: false,
+        reason: 'L\'appuntamento è già passato.'
+      }
+    }
+
+    if (diffMs < fifteenMinutesMs) {
+      return {
+        canModify: true,
+        canCancel: false,
+        reason: 'Impossibile annullare a meno di 15 minuti dall\'orario.'
+      }
+    }
+
+    return { canModify: true, canCancel: true, reason: '' }
+  }
+
+  async function handleCancelAppointment(item) {
+    const { canCancel, reason } = checkAppointmentPermissions(item.start_time)
+
+    if (!canCancel) {
+      alert(reason || "Non hai i permessi per annullare questo appuntamento.")
+      return
+    }
+
     const confirmCancel = window.confirm("Sei sicuro di voler annullare questo appuntamento?")
     if (!confirmCancel) return
 
@@ -90,7 +127,7 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
       const { error } = await supabase
         .from('appointments')
         .update({ status: 'cancelled' })
-        .eq('id', appointmentId)
+        .eq('id', item.id)
 
       if (error) throw error
 
@@ -162,6 +199,8 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
       ) : (
         appointments.map((item) => {
           const { date, time } = formatDateTime(item.start_time)
+          const { canModify, canCancel, reason } = checkAppointmentPermissions(item.start_time)
+          const isPast = new Date(item.start_time) <= new Date()
 
           const serviceList = item.appointment_services
             ?.map((as) => as.services?.name)
@@ -183,7 +222,8 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
               style={{
                 marginBottom: '12px',
                 borderLeft: `4px solid ${isAdmin ? 'var(--barber-red)' : 'var(--barber-blue)'}`,
-                padding: '16px'
+                padding: '16px',
+                opacity: isPast && !isAdmin ? 0.75 : 1
               }}
             >
               {isAdmin && (
@@ -206,44 +246,56 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
               </p>
               <p style={{ margin: '4px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
                 📅 Data: <strong style={{ color: '#FFF' }}>{date}</strong> ore <strong style={{ color: '#FFF' }}>{time}</strong>
+                {isPast && (
+                  <span style={{ marginLeft: '8px', fontSize: '11px', color: '#888', fontWeight: 'bold' }}>
+                    (Scaduto)
+                  </span>
+                )}
               </p>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                {/* Pulsante Modifica */}
                 <button
+                  disabled={!canModify}
                   onClick={() => onEditAppointment(item)}
+                  title={!canModify ? reason : ''}
                   style={{
                     flex: 1,
                     padding: '10px 8px',
-                    backgroundColor: 'var(--barber-blue)',
-                    color: '#FFF',
+                    backgroundColor: !canModify ? '#333' : 'var(--barber-blue)',
+                    color: !canModify ? '#777' : '#FFF',
                     border: 'none',
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: 'bold',
-                    cursor: 'pointer',
+                    cursor: !canModify ? 'not-allowed' : 'pointer',
                     transition: 'opacity 0.2s'
                   }}
-                  onMouseDown={(e) => e.currentTarget.style.opacity = '0.8'}
-                  onMouseUp={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseDown={(e) => canModify && (e.currentTarget.style.opacity = '0.8')}
+                  onMouseUp={(e) => canModify && (e.currentTarget.style.opacity = '1')}
                 >
-                  ✏️ Modifica / Integra
+                  ✏️ Modifica {isAdmin && isPast ? '(Admin)' : ''}
                 </button>
+
+                {/* Pulsante Annulla */}
                 <button
-                  onClick={() => handleCancelAppointment(item.id)}
+                  disabled={!canCancel}
+                  onClick={() => handleCancelAppointment(item)}
+                  title={!canCancel ? reason : ''}
                   style={{
                     flex: 1,
                     padding: '10px 8px',
                     backgroundColor: 'transparent',
-                    color: 'var(--barber-red)',
-                    border: '1px solid var(--barber-red)',
+                    color: !canCancel ? '#555' : 'var(--barber-red)',
+                    border: !canCancel ? '1px solid #444' : '1px solid var(--barber-red)',
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: 'bold',
-                    cursor: 'pointer',
+                    cursor: !canCancel ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s'
                   }}
-                  onMouseDown={(e) => e.currentTarget.style.opacity = '0.8'}
-                  onMouseUp={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseDown={(e) => canCancel && (e.currentTarget.style.opacity = '0.8')}
+                  onMouseUp={(e) => canCancel && (e.currentTarget.style.opacity = '1')}
                 >
                   ❌ Annulla
                 </button>
