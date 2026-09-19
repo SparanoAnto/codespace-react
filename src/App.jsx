@@ -6,6 +6,7 @@ import { Navigation } from './components/Navigation'
 import { AdminApprovals } from './components/AdminApprovals'
 import { AppointmentsView } from './components/AppointmentsView'
 import { AdminReports } from './components/AdminReports'
+import { InstallGuideModal } from './components/InstallGuideModal'
 import './App.css'
 
 export default function App() {
@@ -204,6 +205,7 @@ export default function App() {
   if (profile && !profile.is_approved && profile.role !== 'admin') {
     return (
       <div className="app-container" style={{ padding: '30px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <InstallGuideModal />
         <div className="info-card" style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
           <h2 style={{ color: 'var(--barber-red)', margin: '0 0 10px 0' }}>Account in Attesa</h2>
           <p style={{ color: 'var(--text-muted)', lineHeight: '1.5' }}>
@@ -219,6 +221,9 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* 📲 Banner guida per l'installazione dell'App */}
+      <InstallGuideModal />
+
       <div className="top-banner" />
 
       <div className="header-brand">
