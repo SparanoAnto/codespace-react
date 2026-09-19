@@ -15,7 +15,9 @@ export function AdminReports() {
     topServiceCount: 0,
     topClient: 'N/D',
     topClientCount: 0,
-    uniqueClients: 0
+    uniqueClients: 0,
+    barberRevenue: [], // Dati per incasso operatore
+    serviceBreakdown: [] // Dati per lista servizi ed esecuzioni
   })
 
   useEffect(() => {
@@ -25,13 +27,11 @@ export function AdminReports() {
   async function fetchReportData() {
     setLoading(true)
 
-    // Definiamo inizio e fine del mese selezionato
     const [year, month] = selectedMonth.split('-')
     const startOfMonth = new Date(year, month - 1, 1).toISOString()
     const endOfMonth = new Date(year, month, 0, 23, 59, 59).toISOString()
 
     try {
-      // 1. Recupera tutti gli appuntamenti confermati del mese
       const { data: appointments, error: appError } = await supabase
         .from('appointments')
         .select(`
@@ -39,6 +39,7 @@ export function AdminReports() {
           total_price,
           user_id,
           custom_client_name,
+          barbers ( id, name ),
           profiles ( first_name, last_name, email ),
           appointment_services (
             service_id,
@@ -59,35 +60,53 @@ export function AdminReports() {
           topServiceCount: 0,
           topClient: 'Nessun dato',
           topClientCount: 0,
-          uniqueClients: 0
+          uniqueClients: 0,
+          barberRevenue: [],
+          serviceBreakdown: []
         })
         setLoading(false)
         return
       }
 
-      // 2. Calcola Incasso Totale e Totale Appuntamenti
+      // 1. Totali generali
       const totalAppointments = appointments.length
       const totalRevenue = appointments.reduce((acc, curr) => acc + (parseFloat(curr.total_price) || 0), 0)
 
-      // 3. Calcola il Servizio Più Richiesto
-      const serviceCounts = {}
+      // 2. Calcolo Incasso per Operatore
+      const barberMap = {}
+      appointments.forEach(app => {
+        const barberName = app.barbers?.name || 'Non Assegnato'
+        const price = parseFloat(app.total_price) || 0
+
+        if (!barberMap[barberName]) {
+          barberMap[barberName] = { count: 0, total: 0 }
+        }
+        barberMap[barberName].count += 1
+        barberMap[barberName].total += price
+      })
+
+      const barberRevenue = Object.entries(barberMap)
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.total - a.total)
+
+      // 3. Calcolo Quantità e Dettaglio Servizi
+      const serviceMap = {}
       appointments.forEach(app => {
         app.appointment_services?.forEach(as => {
           const serviceName = as.services?.name || 'Servizio Sconosciuto'
-          serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1
+          serviceMap[serviceName] = (serviceMap[serviceName] || 0) + 1
         })
       })
 
-      let topService = 'N/D'
-      let topServiceCount = 0
-      Object.entries(serviceCounts).forEach(([name, count]) => {
-        if (count > topServiceCount) {
-          topService = name
-          topServiceCount = count
-        }
-      })
+      const serviceBreakdown = Object.entries(serviceMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
 
-      // 4. Calcola il Cliente Top e Clienti Unici
+      // Servizio Top
+      const topService = serviceBreakdown[0]?.name || 'N/D'
+      const topServiceCount = serviceBreakdown[0]?.count || 0
+
+      // 4. Calcolo Cliente Top e Clienti Unici
       const clientCounts = {}
       appointments.forEach(app => {
         let clientName = ''
@@ -120,7 +139,9 @@ export function AdminReports() {
         topServiceCount,
         topClient,
         topClientCount,
-        uniqueClients
+        uniqueClients,
+        barberRevenue,
+        serviceBreakdown
       })
 
     } catch (err) {
@@ -150,53 +171,83 @@ export function AdminReports() {
       {loading ? (
         <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Caricamento dati in corso...</p>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Card Incasso */}
-          <div className="info-card" style={statCardStyle}>
-            <span style={statIconStyle}>💰</span>
-            <span style={statLabelStyle}>Incasso Totale</span>
-            <strong style={{ ...statValueStyle, color: '#66BB6A' }}>
-              €{stats.totalRevenue.toFixed(2)}
-            </strong>
+          {/* Card Principali */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+            <div className="info-card" style={statCardStyle}>
+              <span style={statIconStyle}>💰</span>
+              <span style={statLabelStyle}>Incasso Totale</span>
+              <strong style={{ ...statValueStyle, color: '#66BB6A' }}>
+                €{stats.totalRevenue.toFixed(2)}
+              </strong>
+            </div>
+
+            <div className="info-card" style={statCardStyle}>
+              <span style={statIconStyle}>📅</span>
+              <span style={statLabelStyle}>Appuntamenti</span>
+              <strong style={statValueStyle}>{stats.totalAppointments}</strong>
+            </div>
+
+            <div className="info-card" style={statCardStyle}>
+              <span style={statIconStyle}>👥</span>
+              <span style={statLabelStyle}>Clienti Serviti</span>
+              <strong style={statValueStyle}>{stats.uniqueClients}</strong>
+            </div>
+
+            <div className="info-card" style={statCardStyle}>
+              <span style={statIconStyle}>👑</span>
+              <span style={statLabelStyle}>Cliente Top</span>
+              <strong style={{ ...statValueStyle, fontSize: '1.1rem', color: 'var(--barber-red)' }}>
+                {stats.topClient}
+              </strong>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                ({stats.topClientCount} visite)
+              </span>
+            </div>
           </div>
 
-          {/* Card Appuntamenti */}
-          <div className="info-card" style={statCardStyle}>
-            <span style={statIconStyle}>📅</span>
-            <span style={statLabelStyle}>Appuntamenti</span>
-            <strong style={statValueStyle}>{stats.totalAppointments}</strong>
+          {/* NUOVA SEZIONE: Incassi per Operatore */}
+          <div className="info-card">
+            <h3 style={sectionHeaderStyle}>💈 Rendimento Operatori</h3>
+            {stats.barberRevenue.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Nessun dato per questo mese.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {stats.barberRevenue.map((barber) => (
+                  <div key={barber.name} style={listRowStyle}>
+                    <div>
+                      <strong style={{ color: '#FFF', display: 'block' }}>{barber.name}</strong>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {barber.count} {barber.count === 1 ? 'appuntamento' : 'appuntamenti'}
+                      </span>
+                    </div>
+                    <strong style={{ color: '#66BB6A', fontSize: '1.1rem' }}>
+                      €{barber.total.toFixed(2)}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Card Clienti Unici */}
-          <div className="info-card" style={statCardStyle}>
-            <span style={statIconStyle}>👥</span>
-            <span style={statLabelStyle}>Clienti Serviti</span>
-            <strong style={statValueStyle}>{stats.uniqueClients}</strong>
-          </div>
-
-          {/* Card Servizio Top */}
-          <div className="info-card" style={{ ...statCardStyle, gridColumn: 'span 2' }}>
-            <span style={statIconStyle}>✂️</span>
-            <span style={statLabelStyle}>Servizio Più Richiesto</span>
-            <strong style={{ ...statValueStyle, fontSize: '1.1rem', color: '#64B5F6' }}>
-              {stats.topService}
-            </strong>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              ({stats.topServiceCount} prenotazioni)
-            </span>
-          </div>
-
-          {/* Card Cliente Top */}
-          <div className="info-card" style={{ ...statCardStyle, gridColumn: 'span 2' }}>
-            <span style={statIconStyle}>👑</span>
-            <span style={statLabelStyle}>Cliente più frequente</span>
-            <strong style={{ ...statValueStyle, fontSize: '1.1rem', color: 'var(--barber-red)' }}>
-              {stats.topClient}
-            </strong>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              ({stats.topClientCount} visite questo mese)
-            </span>
+          {/* NUOVA SEZIONE: Quantità Servizi Effettuati */}
+          <div className="info-card">
+            <h3 style={sectionHeaderStyle}>✂️ Servizi Effettuati</h3>
+            {stats.serviceBreakdown.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Nessun servizio erogato questo mese.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {stats.serviceBreakdown.map((service) => (
+                  <div key={service.name} style={listRowStyle}>
+                    <span style={{ color: '#FFF' }}>{service.name}</span>
+                    <strong style={{ color: '#64B5F6', fontSize: '1rem' }}>
+                      {service.count} {service.count === 1 ? 'volta' : 'volte'}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
@@ -240,4 +291,21 @@ const statLabelStyle = {
 const statValueStyle = {
   fontSize: '1.4rem',
   color: '#FFFFFF'
+}
+
+const sectionHeaderStyle = {
+  fontSize: '1rem',
+  color: '#FFF',
+  marginTop: 0,
+  marginBottom: '15px',
+  borderBottom: '1px solid var(--border-color)',
+  paddingBottom: '8px'
+}
+
+const listRowStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '8px 0',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
 }
