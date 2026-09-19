@@ -11,6 +11,9 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
   const [existingAppointments, setExistingAppointments] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
 
+  // Data di oggi in formato YYYY-MM-DD per impostare il min nell'input date
+  const todayString = new Date().toISOString().split('T')[0]
+
   const toggleService = (service) => {
     if (selectedServices.find(s => s.id === service.id)) {
       setSelectedServices(selectedServices.filter(s => s.id !== service.id))
@@ -22,7 +25,7 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
   const totalDuration = selectedServices.reduce((acc, s) => acc + s.duration_minutes, 0)
   const totalPrice = selectedServices.reduce((acc, s) => acc + parseFloat(s.price), 0)
 
-  // Lista di tutti gli orari di apertura del salone
+  // Lista degli orari di apertura del salone
   const allTimeSlots = [
     '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00',
     '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30'
@@ -41,7 +44,6 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
   async function fetchExistingAppointments() {
     setLoadingSlots(true)
     
-    // Inizio e fine della giornata selezionata
     const startOfDay = new Date(`${selectedDate}T00:00:00`).toISOString()
     const endOfDay = new Date(`${selectedDate}T23:59:59`).toISOString()
 
@@ -49,7 +51,7 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
       .from('appointments')
       .select('start_time, end_time')
       .eq('barber_id', selectedBarber.id)
-      .neq('status', 'cancelled') // Ignora eventuali appuntamenti cancellati
+      .neq('status', 'cancelled')
       .gte('start_time', startOfDay)
       .lte('start_time', endOfDay)
 
@@ -61,26 +63,32 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
     setLoadingSlots(false)
   }
 
-  // Funzione che verifica se un determinato slot orario è disponibile
+  // Verifica la validità e disponibilità di uno slot orario
   const isSlotAvailable = (slot) => {
     if (!selectedDate || totalDuration === 0) return false
 
-    // Convertiamo l'ipotesi di inizio e fine del nuovo appuntamento in timestamp Unix (ms)
-    const proposedStart = new Date(`${selectedDate}T${slot}:00`).getTime()
-    const proposedEnd = proposedStart + totalDuration * 60000
+    const now = new Date()
+    const proposedStart = new Date(`${selectedDate}T${slot}:00`)
 
-    // Verifica la sovrapposizione con ogni appuntamento esistente
+    // 1. Blocco orari già passati per il giorno odierno
+    if (proposedStart < now) {
+      return false
+    }
+
+    const proposedStartMs = proposedStart.getTime()
+    const proposedEndMs = proposedStartMs + totalDuration * 60000
+
+    // 2. Verifica sovrapposizione con appuntamenti esistenti
     for (const app of existingAppointments) {
       const existingStart = new Date(app.start_time).getTime()
       const existingEnd = new Date(app.end_time).getTime()
 
-      // Due intervalli si sovrappongono se: (StartA < EndB) AND (EndA > StartB)
-      if (proposedStart < existingEnd && proposedEnd > existingStart) {
-        return false // Slot occupato o non sufficiente per la durata richiesta
+      if (proposedStartMs < existingEnd && proposedEndMs > existingStart) {
+        return false // Slot occupato o senza tempo sufficiente prima del prossimo appuntamento
       }
     }
 
-    return true // Slot libero
+    return true
   }
 
   async function handleConfirmBooking() {
@@ -89,7 +97,6 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
       return
     }
 
-    // Ultima verifica di sicurezza prima di inserire nel DB
     if (!isSlotAvailable(selectedTime)) {
       alert("L'orario selezionato non è più disponibile. Scegli un altro orario.")
       fetchExistingAppointments()
@@ -163,7 +170,13 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
           </div>
 
           <h3>📅 2. Scegli la Data</h3>
-          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={inputStyle} />
+          <input 
+            type="date" 
+            min={todayString}
+            value={selectedDate} 
+            onChange={e => setSelectedDate(e.target.value)} 
+            style={inputStyle} 
+          />
 
           {selectedDate && (
             <>
@@ -208,11 +221,11 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
                           borderRadius: '6px',
                           border: isSelected ? '2px solid #D32F2F' : '1px solid #2A2A2A',
                           backgroundColor: !available
-                            ? '#2A2A2A' // Grigio scuro per orario occupato
+                            ? '#2A2A2A'
                             : isSelected
                             ? '#D32F2F'
                             : '#1A1A1A',
-                          color: !available ? '#555' : '#FFF', // Testo disabilitato
+                          color: !available ? '#555' : '#FFF',
                           cursor: !available ? 'not-allowed' : 'pointer',
                           textDecoration: !available ? 'line-through' : 'none'
                         }}
