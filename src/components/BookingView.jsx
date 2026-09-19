@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-export function BookingView({ services, barbers, userId, onBookingSuccess }) {
+export function BookingView({ services, barbers, userId, isAdmin, onBookingSuccess }) {
   const [selectedServices, setSelectedServices] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedBarber, setSelectedBarber] = useState(null)
   const [selectedTime, setSelectedTime] = useState('')
-  
-  // Stato per salvare gli appuntamenti esistenti del barbiere nella data scelta
+  const [customClientName, setCustomClientName] = useState('') // Per prenotazione da parte dell'admin
+
   const [existingAppointments, setExistingAppointments] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
 
-  // Data di oggi in formato YYYY-MM-DD per impostare il min nell'input date
   const todayString = new Date().toISOString().split('T')[0]
 
   const toggleService = (service) => {
@@ -25,25 +24,22 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
   const totalDuration = selectedServices.reduce((acc, s) => acc + s.duration_minutes, 0)
   const totalPrice = selectedServices.reduce((acc, s) => acc + parseFloat(s.price), 0)
 
-  // Lista degli orari di apertura del salone
   const allTimeSlots = [
     '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00',
     '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30'
   ]
 
-  // Carica gli appuntamenti esistenti da Supabase quando cambiano Data o Operatore
   useEffect(() => {
     if (selectedDate && selectedBarber) {
       fetchExistingAppointments()
     } else {
       setExistingAppointments([])
     }
-    setSelectedTime('') // Reset orario ad ogni cambio data/barbiere
+    setSelectedTime('')
   }, [selectedDate, selectedBarber])
 
   async function fetchExistingAppointments() {
     setLoadingSlots(true)
-    
     const startOfDay = new Date(`${selectedDate}T00:00:00`).toISOString()
     const endOfDay = new Date(`${selectedDate}T23:59:59`).toISOString()
 
@@ -63,14 +59,12 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
     setLoadingSlots(false)
   }
 
-  // Verifica la validità e disponibilità di uno slot orario
   const isSlotAvailable = (slot) => {
     if (!selectedDate || totalDuration === 0) return false
 
     const now = new Date()
     const proposedStart = new Date(`${selectedDate}T${slot}:00`)
 
-    // 1. Blocco orari già passati per il giorno odierno
     if (proposedStart < now) {
       return false
     }
@@ -78,13 +72,12 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
     const proposedStartMs = proposedStart.getTime()
     const proposedEndMs = proposedStartMs + totalDuration * 60000
 
-    // 2. Verifica sovrapposizione con appuntamenti esistenti
     for (const app of existingAppointments) {
       const existingStart = new Date(app.start_time).getTime()
       const existingEnd = new Date(app.end_time).getTime()
 
       if (proposedStartMs < existingEnd && proposedEndMs > existingStart) {
-        return false // Slot occupato o senza tempo sufficiente prima del prossimo appuntamento
+        return false
       }
     }
 
@@ -107,14 +100,25 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
     const endDateTime = new Date(startDateTime.getTime() + totalDuration * 60000)
 
     try {
-      const { data: appData, error: appError } = await supabase.from('appointments').insert([{
+      const newAppointment = {
         user_id: userId,
         barber_id: selectedBarber.id,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         total_price: totalPrice,
         status: 'confirmed'
-      }]).select().single()
+      }
+
+      // Se l'admin inserisce un nome manuale per il cliente
+      if (isAdmin && customClientName.trim() !== '') {
+        newAppointment.custom_client_name = customClientName.trim()
+      }
+
+      const { data: appData, error: appError } = await supabase
+        .from('appointments')
+        .insert([newAppointment])
+        .select()
+        .single()
 
       if (appError) throw appError
 
@@ -130,6 +134,7 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
       setSelectedDate('')
       setSelectedBarber(null)
       setSelectedTime('')
+      setCustomClientName('')
       onBookingSuccess()
     } catch (err) {
       alert("Errore prenotazione: " + err.message)
@@ -138,6 +143,21 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
 
   return (
     <div>
+      {isAdmin && (
+        <div style={{ backgroundColor: '#1A2332', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #1A3B8B' }}>
+          <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#64B5F6', display: 'block', marginBottom: '6px' }}>
+            👑 Prenotazione per conto di un cliente (Opzionale):
+          </label>
+          <input
+            type="text"
+            placeholder="Es: Mario Rossi (Telefonata)"
+            value={customClientName}
+            onChange={(e) => setCustomClientName(e.target.value)}
+            style={{ ...inputStyle, backgroundColor: '#0D1B2A', border: '1px solid #1A3B8B' }}
+          />
+        </div>
+      )}
+
       <h3>✂️ 1. Seleziona Servizi</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
         {services.map(s => {
