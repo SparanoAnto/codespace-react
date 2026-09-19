@@ -18,6 +18,7 @@ export default function App() {
   const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   // Stati per il cambio password nel profilo
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [pwdLoading, setPwdLoading] = useState(false)
   const [pwdMessage, setPwdMessage] = useState({ type: '', text: '' })
@@ -124,6 +125,7 @@ export default function App() {
     } else {
       setPwdMessage({ type: 'success', text: 'Password aggiornata con successo!' })
       setNewPassword('')
+      setTimeout(() => setShowPasswordForm(false), 2000)
     }
     setPwdLoading(false)
   }
@@ -226,7 +228,7 @@ export default function App() {
           />
         )}
 
-        {/* TAB PROFILO AGGIORNATO */}
+        {/* TAB PROFILO */}
         {activeTab === 'profile' && (
           <div>
             <h3 className="section-title">Il Tuo Profilo</h3>
@@ -237,56 +239,91 @@ export default function App() {
               
               <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '20px 0' }} />
 
-              <h4 style={{ color: '#FFF', margin: '0 0 10px 0' }}>Cambia Password</h4>
-              
-              {pwdMessage.text && (
-                <div style={{
-                  padding: '10px',
-                  borderRadius: '6px',
-                  marginBottom: '10px',
-                  fontSize: '13px',
-                  backgroundColor: pwdMessage.type === 'error' ? 'rgba(211, 47, 47, 0.2)' : 'rgba(46, 125, 50, 0.2)',
-                  border: pwdMessage.type === 'error' ? '1px solid var(--barber-red)' : '1px solid #2e7d32',
-                  color: pwdMessage.type === 'error' ? '#FFF' : '#81c784'
-                }}>
-                  {pwdMessage.text}
-                </div>
-              )}
-
-              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <input 
-                  type="password" 
-                  placeholder="Nuova Password" 
-                  value={newPassword} 
-                  onChange={e => setNewPassword(e.target.value)}
+              {!showPasswordForm ? (
+                <button 
+                  onClick={() => {
+                    setShowPasswordForm(true)
+                    setPwdMessage({ type: '', text: '' })
+                  }}
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'rgba(15, 15, 15, 0.8)',
-                    color: '#FFF',
-                    boxSizing: 'border-box',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
-                <button 
-                  type="submit" 
-                  disabled={pwdLoading}
-                  style={{
                     padding: '10px',
                     borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: 'var(--barber-red)',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
                     color: '#FFF',
                     fontWeight: 'bold',
                     cursor: 'pointer'
                   }}
                 >
-                  {pwdLoading ? 'Aggiornamento...' : 'Aggiorna Password'}
+                  🔑 Modifica Password
                 </button>
-              </form>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h4 style={{ color: '#FFF', margin: 0 }}>Cambia Password</h4>
+                    <span 
+                      onClick={() => {
+                        setShowPasswordForm(false)
+                        setNewPassword('')
+                        setPwdMessage({ type: '', text: '' })
+                      }}
+                      style={{ color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Annulla
+                    </span>
+                  </div>
+                  
+                  {pwdMessage.text && (
+                    <div style={{
+                      padding: '10px',
+                      borderRadius: '6px',
+                      marginBottom: '10px',
+                      fontSize: '13px',
+                      backgroundColor: pwdMessage.type === 'error' ? 'rgba(211, 47, 47, 0.2)' : 'rgba(46, 125, 50, 0.2)',
+                      border: pwdMessage.type === 'error' ? '1px solid var(--barber-red)' : '1px solid #2e7d32',
+                      color: pwdMessage.type === 'error' ? '#FFF' : '#81c784'
+                    }}>
+                      {pwdMessage.text}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <input 
+                      type="password" 
+                      placeholder="Nuova Password" 
+                      value={newPassword} 
+                      onChange={e => setNewPassword(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'rgba(15, 15, 15, 0.8)',
+                        color: '#FFF',
+                        boxSizing: 'border-box',
+                        fontSize: '14px',
+                        outline: 'none'
+                      }}
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={pwdLoading}
+                      style={{
+                        padding: '10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: 'var(--barber-red)',
+                        color: '#FFF',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {pwdLoading ? 'Aggiornamento...' : 'Aggiorna Password'}
+                    </button>
+                  </form>
+                </div>
+              )}
 
               <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '20px 0' }} />
 
