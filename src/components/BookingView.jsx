@@ -64,6 +64,8 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
       if (editingAppointment.custom_client_name) {
         setCustomClientName(editingAppointment.custom_client_name)
+      } else {
+        setCustomClientName('')
       }
     }
   }, [editingAppointment, services, barbers])
@@ -79,7 +81,6 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
   const totalDuration = selectedServices.reduce((acc, s) => acc + s.duration_minutes, 0)
   const totalPrice = selectedServices.reduce((acc, s) => acc + parseFloat(s.price), 0)
 
-  // Array degli orari con virgola corretta tra '14:00' e '14:30'
   const allTimeSlots = [
     '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00',
     '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'
@@ -91,7 +92,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
     } else {
       setExistingAppointments([])
     }
-  }, [selectedDate, selectedBarber])
+  }, [selectedDate, selectedBarber, editingAppointment])
 
   async function fetchExistingAppointments() {
     setLoadingSlots(true)
@@ -106,7 +107,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
       .gte('start_time', startOfDay)
       .lte('start_time', endOfDay)
 
-    if (editingAppointment) {
+    if (editingAppointment && editingAppointment.id) {
       query = query.neq('id', editingAppointment.id)
     }
 
@@ -143,7 +144,20 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
     return true
   }
 
-  // Gestione dell'annullamento dell'appuntamento esistente
+  // Reset completo quando l'utente preme "Chiudi ✖"
+  const handleCloseEditMode = () => {
+    setSelectedServices([])
+    setSelectedDate('')
+    setSelectedBarber(null)
+    setSelectedTime('')
+    setCustomClientName('')
+
+    if (onCancelEdit) {
+      onCancelEdit()
+    }
+  }
+
+  // Annullamento definitivo dell'appuntamento in corso di modifica
   async function handleCancelExistingAppointment() {
     if (!editingAppointment) return
 
@@ -164,12 +178,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
       if (error) throw error
 
       alert("Appuntamento annullato con successo!")
-      setSelectedServices([])
-      setSelectedDate('')
-      setSelectedBarber(null)
-      setSelectedTime('')
-      setCustomClientName('')
-      if (onCancelEdit) onCancelEdit()
+      handleCloseEditMode()
       if (onBookingSuccess) onBookingSuccess()
     } catch (err) {
       alert("Errore nell'annullamento: " + err.message)
@@ -192,20 +201,32 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
     const endDateTime = new Date(startDateTime.getTime() + totalDuration * 60000)
 
     try {
-      if (editingAppointment) {
+      // 🔴 AGGIORNAMENTO DI UN APPUNTAMENTO ESISTENTE
+      if (editingAppointment && editingAppointment.id) {
+        const updatePayload = {
+          barber_id: selectedBarber.id,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          total_price: totalPrice
+        }
+
+        // Mantiene il nome cliente corrente se l'input dell'admin è vuoto
+        if (isAdmin) {
+          if (customClientName.trim() !== '') {
+            updatePayload.custom_client_name = customClientName.trim()
+          } else if (editingAppointment.custom_client_name) {
+            updatePayload.custom_client_name = editingAppointment.custom_client_name
+          }
+        }
+
         const { error: updateError } = await supabase
           .from('appointments')
-          .update({
-            barber_id: selectedBarber.id,
-            start_time: startDateTime.toISOString(),
-            end_time: endDateTime.toISOString(),
-            total_price: totalPrice,
-            custom_client_name: isAdmin && customClientName.trim() !== '' ? customClientName.trim() : editingAppointment.custom_client_name
-          })
+          .update(updatePayload)
           .eq('id', editingAppointment.id)
 
         if (updateError) throw updateError
 
+        // Aggiornamento della tabella ponte servizi
         const { error: delError } = await supabase
           .from('appointment_services')
           .delete()
@@ -226,6 +247,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         alert("Appuntamento modificato con successo!")
       } else {
+        // 🟢 INSERIMENTO NUOVA PRENOTAZIONE
         const newAppointment = {
           user_id: userId,
           barber_id: selectedBarber.id,
@@ -261,12 +283,8 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
         alert("Prenotazione confermata con successo!")
       }
 
-      setSelectedServices([])
-      setSelectedDate('')
-      setSelectedBarber(null)
-      setSelectedTime('')
-      setCustomClientName('')
-      onBookingSuccess()
+      handleCloseEditMode()
+      if (onBookingSuccess) onBookingSuccess()
     } catch (err) {
       alert("Errore salvataggio: " + err.message)
     }
@@ -285,7 +303,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
               Annulla Appuntamento
             </button>
             <button 
-              onClick={onCancelEdit} 
+              onClick={handleCloseEditMode} 
               style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}
             >
               Chiudi ✖
