@@ -1,37 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-/**
- * Funzione helper per verificare se un appuntamento può essere annullato.
- * @param {string|Date} startTime - Data/ora di inizio dell'appuntamento
- * @param {boolean} isAdmin - Se true, ignora il limite dei 15 minuti
- * @returns {{ allowed: boolean, reason?: string }}
- */
-export function canCancelAppointment(startTime, isAdmin) {
-  if (isAdmin) return { allowed: true }
-
-  const now = new Date().getTime()
-  const appointmentStart = new Date(startTime).getTime()
-  const fifteenMinutesInMs = 15 * 60 * 1000
-  const timeDifference = appointmentStart - now
-
-  if (timeDifference <= 0) {
-    return {
-      allowed: false,
-      reason: "Impossibile annullare un appuntamento già passato o in corso."
-    }
-  }
-
-  if (timeDifference < fifteenMinutesInMs) {
-    return {
-      allowed: false,
-      reason: "Non puoi annullare l'appuntamento a meno di 15 minuti dall'orario prenotato. Contatta direttamente il salone."
-    }
-  }
-
-  return { allowed: true }
-}
-
 export function BookingView({ services, barbers, userId, isAdmin, editingAppointment, onBookingSuccess, onCancelEdit }) {
   const [selectedServices, setSelectedServices] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
@@ -44,12 +13,15 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
   const todayString = new Date().toISOString().split('T')[0]
 
+  // Pre-compilazione dati se stiamo MODIFICANDO un appuntamento
   useEffect(() => {
     if (editingAppointment) {
+      // 1. Carica i servizi già associati
       const currentServiceIds = editingAppointment.appointment_services?.map(as => as.service_id || as.services?.id)
       const initialServices = services.filter(s => currentServiceIds?.includes(s.id))
       setSelectedServices(initialServices)
 
+      // 2. Carica data e orario
       if (editingAppointment.start_time) {
         const dt = new Date(editingAppointment.start_time)
         const dateStr = dt.toISOString().split('T')[0]
@@ -59,14 +31,23 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
         setSelectedTime(`${hours}:${minutes}`)
       }
 
+      // 3. Carica il barbiere
       const barber = barbers.find(b => b.id === editingAppointment.barber_id)
       if (barber) setSelectedBarber(barber)
 
+      // 4. Carica il nome cliente (se presente)
       if (editingAppointment.custom_client_name) {
         setCustomClientName(editingAppointment.custom_client_name)
       } else {
         setCustomClientName('')
       }
+    } else {
+      // Se NON stiamo modificando, azzera i campi per una nuova prenotazione
+      setSelectedServices([])
+      setSelectedDate('')
+      setSelectedBarber(null)
+      setSelectedTime('')
+      setCustomClientName('')
     }
   }, [editingAppointment, services, barbers])
 
@@ -107,7 +88,8 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
       .gte('start_time', startOfDay)
       .lte('start_time', endOfDay)
 
-    if (editingAppointment && editingAppointment.id) {
+    // Se stiamo modificando, escludiamo L'APPUNTAMENTO STESSO per permettere di mantenere lo stesso slot
+    if (editingAppointment?.id) {
       query = query.neq('id', editingAppointment.id)
     }
 
@@ -144,47 +126,6 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
     return true
   }
 
-  // Reset completo quando l'utente preme "Chiudi ✖"
-  const handleCloseEditMode = () => {
-    setSelectedServices([])
-    setSelectedDate('')
-    setSelectedBarber(null)
-    setSelectedTime('')
-    setCustomClientName('')
-
-    if (onCancelEdit) {
-      onCancelEdit()
-    }
-  }
-
-  // Annullamento definitivo dell'appuntamento in corso di modifica
-  async function handleCancelExistingAppointment() {
-    if (!editingAppointment) return
-
-    const check = canCancelAppointment(editingAppointment.start_time, isAdmin)
-    if (!check.allowed) {
-      alert(check.reason)
-      return
-    }
-
-    if (!window.confirm("Sei sicuro di voler annullare definitivamente questo appuntamento?")) return
-
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: 'cancelled' })
-        .eq('id', editingAppointment.id)
-
-      if (error) throw error
-
-      alert("Appuntamento annullato con successo!")
-      handleCloseEditMode()
-      if (onBookingSuccess) onBookingSuccess()
-    } catch (err) {
-      alert("Errore nell'annullamento: " + err.message)
-    }
-  }
-
   async function handleConfirmBooking() {
     if (!selectedDate || !selectedBarber || !selectedTime || selectedServices.length === 0) {
       alert("Seleziona tutti i campi obbligatori.")
@@ -192,8 +133,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
     }
 
     if (!isSlotAvailable(selectedTime)) {
-      alert("L'orario selezionato non è disponibile per la durata dei servizi scelti. Seleziona un altro orario.")
-      fetchExistingAppointments()
+      alert("L'orario selezionato non è disponibile per la durata dei servizi scelti.")
       return
     }
 
@@ -201,8 +141,9 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
     const endDateTime = new Date(startDateTime.getTime() + totalDuration * 60000)
 
     try {
-      // 🔴 AGGIORNAMENTO DI UN APPUNTAMENTO ESISTENTE
+      // 🔴 RICONOSCIMENTO RIGIDO: Se stiamo MODIFICANDO un appuntamento esistente
       if (editingAppointment && editingAppointment.id) {
+        
         const updatePayload = {
           barber_id: selectedBarber.id,
           start_time: startDateTime.toISOString(),
@@ -210,7 +151,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
           total_price: totalPrice
         }
 
-        // Mantiene il nome cliente corrente se l'input dell'admin è vuoto
+        // Se l'admin scrive un nuovo nome lo aggiorna, altrimenti mantiene quello gia memorizzato
         if (isAdmin) {
           if (customClientName.trim() !== '') {
             updatePayload.custom_client_name = customClientName.trim()
@@ -219,6 +160,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
           }
         }
 
+        // 1. SOVRASCRIVE L'APPUNTAMENTO ESISTENTE SENZA CREARNE UNO NUOVO
         const { error: updateError } = await supabase
           .from('appointments')
           .update(updatePayload)
@@ -226,7 +168,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         if (updateError) throw updateError
 
-        // Aggiornamento della tabella ponte servizi
+        // 2. Sostituisce i vecchi servizi associati
         const { error: delError } = await supabase
           .from('appointment_services')
           .delete()
@@ -245,9 +187,10 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         if (insertServiceError) throw insertServiceError
 
-        alert("Appuntamento modificato con successo!")
-      } else {
-        // 🟢 INSERIMENTO NUOVA PRENOTAZIONE
+        alert("Appuntamento modificato e sovrascritto con successo!")
+      } 
+      // 🟢 CREAZIONE DI UNA NUOVA PRENOTAZIONE (Eseguito SOLO ed ESCLUSIVAMENTE se si parte da zero)
+      else {
         const newAppointment = {
           user_id: userId,
           barber_id: selectedBarber.id,
@@ -280,10 +223,9 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         if (joinError) throw joinError
 
-        alert("Prenotazione confermata con successo!")
+        alert("Nuova prenotazione confermata con successo!")
       }
 
-      handleCloseEditMode()
       if (onBookingSuccess) onBookingSuccess()
     } catch (err) {
       alert("Errore salvataggio: " + err.message)
@@ -292,23 +234,18 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
   return (
     <div>
+      {/* Banner di avviso Modalità Modifica */}
       {editingAppointment && (
-        <div style={{ backgroundColor: 'rgba(211, 47, 47, 0.15)', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--barber-red)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 'bold', color: 'var(--barber-red)', fontSize: '0.9rem' }}>✏️ Modifica Appuntamento</span>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={handleCancelExistingAppointment} 
-              style={{ background: 'transparent', border: 'none', color: 'var(--barber-red)', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', textDecoration: 'underline' }}
-            >
-              Annulla Appuntamento
-            </button>
-            <button 
-              onClick={handleCloseEditMode} 
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}
-            >
-              Chiudi ✖
-            </button>
-          </div>
+        <div style={{ backgroundColor: 'rgba(25, 118, 210, 0.15)', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--barber-blue)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 'bold', color: 'var(--barber-blue)', fontSize: '0.9rem' }}>
+            ✏️ Modifica dell'appuntamento esistente
+          </span>
+          <button 
+            onClick={onCancelEdit} 
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}
+          >
+            Annulla Modifica
+          </button>
         </div>
       )}
 
@@ -451,7 +388,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
                   transition: 'all 0.2s ease'
                 }}
               >
-                {editingAppointment ? "Salva Modifiche Appuntamento" : "Conferma Prenotazione"}
+                {editingAppointment ? "Salva Modifiche Appuntamento" : "Conferma Nuova Prenotazione"}
               </button>
             </>
           )}
