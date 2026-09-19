@@ -5,7 +5,7 @@ import { BookingView } from './components/BookingView'
 import { Navigation } from './components/Navigation'
 import { AdminApprovals } from './components/AdminApprovals'
 import { AppointmentsView } from './components/AppointmentsView'
-import { AdminReports } from './components/AdminReports' // 1. Importato AdminReports
+import { AdminReports } from './components/AdminReports'
 import './App.css'
 
 export default function App() {
@@ -13,6 +13,9 @@ export default function App() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('services')
+
+  // Stato per la gestione del reset password da link email
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   // Stato per navigare tra Approvazioni e Report dentro la sezione Admin
   const [adminSubTab, setAdminSubTab] = useState('approvals')
@@ -31,10 +34,17 @@ export default function App() {
       else setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
-      if (session) fetchProfile(session.user.id)
-      else {
+
+      // 🔴 Intercetta il link di recupero password prima di entrare in app
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResettingPassword(true)
+      }
+
+      if (session) {
+        fetchProfile(session.user.id)
+      } else {
         setProfile(null)
         setLoading(false)
       }
@@ -98,8 +108,20 @@ export default function App() {
     )
   }
 
+  // 🔑 1. Se l'utente arriva dal link di reset password, forziamo la schermata di Auth per l'aggiornamento
+  if (isResettingPassword) {
+    return (
+      <Auth 
+        isResettingPasswordProps={true} 
+        onPasswordUpdated={() => setIsResettingPassword(false)} 
+      />
+    )
+  }
+
+  // 🔑 2. Se l'utente non ha una sessione attiva, mostra la schermata Auth
   if (!session) return <Auth />
 
+  // 🔑 3. Blocco per utenti non ancora approvati dall'admin
   if (profile && !profile.is_approved && profile.role !== 'admin') {
     return (
       <div className="app-container" style={{ padding: '30px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
