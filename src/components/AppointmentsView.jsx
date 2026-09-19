@@ -62,7 +62,6 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
           .lte('start_time', endOfDay)
           .order('start_time', { ascending: true })
 
-        // Filtra per barbiere specifico se selezionato dall'admin
         if (selectedBarberId !== 'all') {
           query = query.eq('barber_id', selectedBarberId)
         }
@@ -112,16 +111,16 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h3 style={{ margin: 0 }}>
-          {isAdmin ? '📖 Agenda Salone Centralizzata' : '📅 Le Tue Prenotazioni'}
+      <div style={{ marginBottom: '15px' }}>
+        <h3 className="section-title">
+          {isAdmin ? 'Agenda Salone Centralizzata' : 'Le Tue Prenotazioni'}
         </h3>
       </div>
 
       {isAdmin && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '12px', color: '#AAA', display: 'block', marginBottom: '5px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Data Agenda:
             </label>
             <input
@@ -133,7 +132,7 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
           </div>
 
           <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '12px', color: '#AAA', display: 'block', marginBottom: '5px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Operatore:
             </label>
             <select
@@ -153,11 +152,11 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
       )}
 
       {loading ? (
-        <p style={{ color: '#AAA' }}>Caricamento prenotazioni...</p>
+        <p style={{ color: 'var(--text-muted)' }}>Caricamento prenotazioni...</p>
       ) : errorMsg ? (
-        <p style={{ color: '#D32F2F', fontSize: '14px' }}>Errore caricamento: {errorMsg}</p>
+        <p style={{ color: 'var(--barber-red)', fontSize: '14px' }}>Errore caricamento: {errorMsg}</p>
       ) : appointments.length === 0 ? (
-        <p style={{ color: '#888' }}>
+        <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
           {isAdmin ? 'Nessun appuntamento attivo per i filtri selezionati.' : 'Non hai ancora effettuato nessuna prenotazione attiva.'}
         </p>
       ) : (
@@ -180,50 +179,52 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
           return (
             <div
               key={item.id}
+              className="info-card"
               style={{
-                backgroundColor: '#1E1E1E',
-                padding: '15px',
-                borderRadius: '8px',
-                marginBottom: '10px',
-                borderLeft: `4px solid ${isAdmin ? '#D32F2F' : '#1A3B8B'}`
+                marginBottom: '12px',
+                borderLeft: `4px solid ${isAdmin ? 'var(--barber-red)' : 'var(--barber-blue)'}`,
+                padding: '16px'
               }}
             >
               {isAdmin && (
-                <div style={{ marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #2A2A2A', fontWeight: 'bold', color: '#FFF' }}>
-                  👤 {clientName} <span style={{ fontSize: '12px', color: '#AAA' }}>{clientPhone}</span>
+                <div style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)', fontWeight: 'bold', color: '#FFF', fontSize: '0.95rem' }}>
+                  👤 {clientName} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'normal' }}>{clientPhone}</span>
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 'bold', fontSize: '1.05rem', color: '#ffffff' }}>
                   {serviceList}
                 </span>
-                <span style={{ color: '#D32F2F', fontWeight: 'bold' }}>
+                <span style={{ color: 'var(--barber-red)', fontWeight: 'bold', fontSize: '1.1rem' }}>
                   {item.total_price ? `€${parseFloat(item.total_price).toFixed(2)}` : ''}
                 </span>
               </div>
 
-              <p style={{ margin: '3px 0', fontSize: '13px', color: '#AAA' }}>
+              <p style={{ margin: '4px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
                 💈 Barbiere: <strong style={{ color: '#FFF' }}>{item.barbers?.name || 'Non specificato'}</strong>
               </p>
-              <p style={{ margin: '3px 0', fontSize: '13px', color: '#AAA' }}>
-                📅 Data: {date} ore {time}
+              <p style={{ margin: '4px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                📅 Data: <strong style={{ color: '#FFF' }}>{date}</strong> ore <strong style={{ color: '#FFF' }}>{time}</strong>
               </p>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
                 <button
                   onClick={() => onEditAppointment(item)}
                   style={{
                     flex: 1,
-                    padding: '8px',
-                    backgroundColor: '#1A3B8B',
+                    padding: '10px 8px',
+                    backgroundColor: 'var(--barber-blue)',
                     color: '#FFF',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: 'bold',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s'
                   }}
+                  onMouseDown={(e) => e.currentTarget.style.opacity = '0.8'}
+                  onMouseUp={(e) => e.currentTarget.style.opacity = '1'}
                 >
                   ✏️ Modifica / Integra
                 </button>
@@ -231,15 +232,18 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
                   onClick={() => handleCancelAppointment(item.id)}
                   style={{
                     flex: 1,
-                    padding: '8px',
+                    padding: '10px 8px',
                     backgroundColor: 'transparent',
-                    color: '#D32F2F',
-                    border: '1px solid #D32F2F',
-                    borderRadius: '4px',
+                    color: 'var(--barber-red)',
+                    border: '1px solid var(--barber-red)',
+                    borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: 'bold',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
                   }}
+                  onMouseDown={(e) => e.currentTarget.style.opacity = '0.8'}
+                  onMouseUp={(e) => e.currentTarget.style.opacity = '1'}
                 >
                   ❌ Annulla
                 </button>
@@ -254,10 +258,12 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
 
 const filterInputStyle = {
   width: '100%',
-  padding: '10px',
+  padding: '10px 12px',
   borderRadius: '6px',
-  border: '1px solid #2A2A2A',
-  backgroundColor: '#1A1A1A',
+  border: '1px solid var(--border-color)',
+  backgroundColor: 'rgba(20, 20, 20, 0.9)',
   color: '#FFF',
-  boxSizing: 'border-box'
+  boxSizing: 'border-box',
+  outline: 'none',
+  fontSize: '13px'
 }
