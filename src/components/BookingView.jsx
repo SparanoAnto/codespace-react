@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
 export function BookingView({ services, barbers, userId, onBookingSuccess }) {
@@ -6,6 +6,10 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedBarber, setSelectedBarber] = useState(null)
   const [selectedTime, setSelectedTime] = useState('')
+  
+  // Stato per salvare gli appuntamenti esistenti del barbiere nella data scelta
+  const [existingAppointments, setExistingAppointments] = useState([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
 
   const toggleService = (service) => {
     if (selectedServices.find(s => s.id === service.id)) {
@@ -18,9 +22,77 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
   const totalDuration = selectedServices.reduce((acc, s) => acc + s.duration_minutes, 0)
   const totalPrice = selectedServices.reduce((acc, s) => acc + parseFloat(s.price), 0)
 
+  // Lista di tutti gli orari di apertura del salone
+  const allTimeSlots = [
+    '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30'
+  ]
+
+  // Carica gli appuntamenti esistenti da Supabase quando cambiano Data o Operatore
+  useEffect(() => {
+    if (selectedDate && selectedBarber) {
+      fetchExistingAppointments()
+    } else {
+      setExistingAppointments([])
+    }
+    setSelectedTime('') // Reset orario ad ogni cambio data/barbiere
+  }, [selectedDate, selectedBarber])
+
+  async function fetchExistingAppointments() {
+    setLoadingSlots(true)
+    
+    // Inizio e fine della giornata selezionata
+    const startOfDay = new Date(`${selectedDate}T00:00:00`).toISOString()
+    const endOfDay = new Date(`${selectedDate}T23:59:59`).toISOString()
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('start_time, end_time')
+      .eq('barber_id', selectedBarber.id)
+      .neq('status', 'cancelled') // Ignora eventuali appuntamenti cancellati
+      .gte('start_time', startOfDay)
+      .lte('start_time', endOfDay)
+
+    if (error) {
+      console.error('Errore recupero appuntamenti:', error.message)
+    } else {
+      setExistingAppointments(data || [])
+    }
+    setLoadingSlots(false)
+  }
+
+  // Funzione che verifica se un determinato slot orario è disponibile
+  const isSlotAvailable = (slot) => {
+    if (!selectedDate || totalDuration === 0) return false
+
+    // Convertiamo l'ipotesi di inizio e fine del nuovo appuntamento in timestamp Unix (ms)
+    const proposedStart = new Date(`${selectedDate}T${slot}:00`).getTime()
+    const proposedEnd = proposedStart + totalDuration * 60000
+
+    // Verifica la sovrapposizione con ogni appuntamento esistente
+    for (const app of existingAppointments) {
+      const existingStart = new Date(app.start_time).getTime()
+      const existingEnd = new Date(app.end_time).getTime()
+
+      // Due intervalli si sovrappongono se: (StartA < EndB) AND (EndA > StartB)
+      if (proposedStart < existingEnd && proposedEnd > existingStart) {
+        return false // Slot occupato o non sufficiente per la durata richiesta
+      }
+    }
+
+    return true // Slot libero
+  }
+
   async function handleConfirmBooking() {
     if (!selectedDate || !selectedBarber || !selectedTime || selectedServices.length === 0) {
       alert("Seleziona tutti i campi obbligatori.")
+      return
+    }
+
+    // Ultima verifica di sicurezza prima di inserire nel DB
+    if (!isSlotAvailable(selectedTime)) {
+      alert("L'orario selezionato non è più disponibile. Scegli un altro orario.")
+      fetchExistingAppointments()
       return
     }
 
@@ -118,22 +190,51 @@ export function BookingView({ services, barbers, userId, onBookingSuccess }) {
           {selectedBarber && (
             <>
               <h3>🕒 4. Seleziona Orario</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '25px' }}>
-                {['08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30'].map(slot => (
-                  <button key={slot} onClick={() => setSelectedTime(slot)} style={{
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: selectedTime === slot ? '2px solid #D32F2F' : '1px solid #2A2A2A',
-                    backgroundColor: selectedTime === slot ? '#D32F2F' : '#1A1A1A',
-                    color: '#FFF',
-                    cursor: 'pointer'
-                  }}>
-                    {slot}
-                  </button>
-                ))}
-              </div>
+              {loadingSlots ? (
+                <p style={{ color: '#AAA' }}>Verifica disponibilità orari in corso...</p>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '25px' }}>
+                  {allTimeSlots.map(slot => {
+                    const available = isSlotAvailable(slot)
+                    const isSelected = selectedTime === slot
 
-              <button onClick={handleConfirmBooking} style={btnPrimaryStyle}>Conferma Prenotazione</button>
+                    return (
+                      <button
+                        key={slot}
+                        disabled={!available}
+                        onClick={() => setSelectedTime(slot)}
+                        style={{
+                          padding: '10px',
+                          borderRadius: '6px',
+                          border: isSelected ? '2px solid #D32F2F' : '1px solid #2A2A2A',
+                          backgroundColor: !available
+                            ? '#2A2A2A' // Grigio scuro per orario occupato
+                            : isSelected
+                            ? '#D32F2F'
+                            : '#1A1A1A',
+                          color: !available ? '#555' : '#FFF', // Testo disabilitato
+                          cursor: !available ? 'not-allowed' : 'pointer',
+                          textDecoration: !available ? 'line-through' : 'none'
+                        }}
+                      >
+                        {slot}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              <button 
+                onClick={handleConfirmBooking} 
+                disabled={!selectedTime}
+                style={{
+                  ...btnPrimaryStyle,
+                  backgroundColor: !selectedTime ? '#444' : '#D32F2F',
+                  cursor: !selectedTime ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Conferma Prenotazione
+              </button>
             </>
           )}
         </>
