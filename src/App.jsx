@@ -16,6 +16,8 @@ export default function App() {
   const [barbers, setBarbers] = useState([])
   const [pendingCount, setPendingCount] = useState(0)
 
+  const [editingAppointment, setEditingAppointment] = useState(null)
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -71,6 +73,16 @@ export default function App() {
     if (bData) setBarbers(bData)
   }
 
+  const handleStartEdit = (appointment) => {
+    setEditingAppointment(appointment)
+    setActiveTab('services')
+  }
+
+  const handleBookingSuccess = () => {
+    setEditingAppointment(null)
+    setActiveTab('appointments')
+  }
+
   if (loading) {
     return (
       <div style={{ backgroundColor: '#0A0A0A', color: '#FFFFFF', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -108,7 +120,9 @@ export default function App() {
             barbers={barbers} 
             userId={session.user.id} 
             isAdmin={profile?.role === 'admin'}
-            onBookingSuccess={() => setActiveTab('appointments')} 
+            editingAppointment={editingAppointment}
+            onBookingSuccess={handleBookingSuccess}
+            onCancelEdit={() => setEditingAppointment(null)}
           />
         )}
 
@@ -125,6 +139,7 @@ export default function App() {
           <AppointmentsView 
             userId={session.user.id} 
             isAdmin={profile?.role === 'admin'}
+            onEditAppointment={handleStartEdit}
           />
         )}
 
