@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-export function AppointmentsView({ userId, isAdmin }) {
+export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState(null)
-  
-  // Data selezionata dall'admin (default: oggi YYYY-MM-DD)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
 
   useEffect(() => {
@@ -31,15 +29,18 @@ export function AppointmentsView({ userId, isAdmin }) {
           status,
           total_price,
           custom_client_name,
+          barber_id,
+          user_id,
           profiles:user_id ( first_name, last_name, phone ),
-          barbers ( name ),
+          barbers ( id, name ),
           appointment_services (
-            services ( name, price )
+            service_id,
+            services ( id, name, price, duration_minutes )
           )
         `)
+        .neq('status', 'cancelled')
 
       if (isAdmin) {
-        // Se è admin, mostra gli appuntamenti della data selezionata
         const startOfDay = new Date(`${selectedDate}T00:00:00`).toISOString()
         const endOfDay = new Date(`${selectedDate}T23:59:59`).toISOString()
 
@@ -48,14 +49,12 @@ export function AppointmentsView({ userId, isAdmin }) {
           .lte('start_time', endOfDay)
           .order('start_time', { ascending: true })
       } else {
-        // Se è cliente normale, mostra solo i suoi appuntamenti
         query = query
           .eq('user_id', userId)
           .order('start_time', { ascending: false })
       }
 
       const { data, error } = await query
-
       if (error) throw error
       setAppointments(data || [])
     } catch (err) {
@@ -63,6 +62,25 @@ export function AppointmentsView({ userId, isAdmin }) {
       setErrorMsg(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleCancelAppointment(appointmentId) {
+    const confirmCancel = window.confirm("Sei sicuro di voler annullare questo appuntamento?")
+    if (!confirmCancel) return
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', appointmentId)
+
+      if (error) throw error
+
+      alert("Appuntamento annullato con successo!")
+      fetchAppointments()
+    } catch (err) {
+      alert("Errore durante l'annullamento: " + err.message)
     }
   }
 
@@ -110,7 +128,7 @@ export function AppointmentsView({ userId, isAdmin }) {
         <p style={{ color: '#D32F2F', fontSize: '14px' }}>Errore caricamento: {errorMsg}</p>
       ) : appointments.length === 0 ? (
         <p style={{ color: '#888' }}>
-          {isAdmin ? 'Nessun appuntamento per questa data.' : 'Non hai ancora effettuato nessuna prenotazione.'}
+          {isAdmin ? 'Nessun appuntamento attivo per questa data.' : 'Non hai ancora effettuato nessuna prenotazione attiva.'}
         </p>
       ) : (
         appointments.map((item) => {
@@ -121,11 +139,10 @@ export function AppointmentsView({ userId, isAdmin }) {
             .filter(Boolean)
             .join(', ') || 'Servizio Generico'
 
-          // Determinazione del nome cliente (profilo o nome manuale inserito dall'admin)
           const clientName = item.custom_client_name 
             ? item.custom_client_name 
             : item.profiles 
-            ? `${item.profiles.first_name} ${item.profiles.last_name || ''}` 
+            ? `${item.profiles.first_name || ''} ${item.profiles.last_name || ''}`.trim() 
             : 'Cliente'
 
           const clientPhone = item.profiles?.phone ? ` 📞 ${item.profiles.phone}` : ''
@@ -152,7 +169,7 @@ export function AppointmentsView({ userId, isAdmin }) {
                   {serviceList}
                 </span>
                 <span style={{ color: '#D32F2F', fontWeight: 'bold' }}>
-                  {item.total_price ? `${item.total_price}€` : ''}
+                  {item.total_price ? `€${parseFloat(item.total_price).toFixed(2)}` : ''}
                 </span>
               </div>
               <p style={{ margin: '3px 0', fontSize: '13px', color: '#AAA' }}>
@@ -161,11 +178,41 @@ export function AppointmentsView({ userId, isAdmin }) {
               <p style={{ margin: '3px 0', fontSize: '13px', color: '#AAA' }}>
                 📅 Data: {date} ore {time}
               </p>
-              {item.status && (
-                <p style={{ margin: '3px 0', fontSize: '11px', color: item.status === 'confirmed' ? '#4CAF50' : '#FFA726' }}>
-                  Stato: {item.status.toUpperCase()}
-                </p>
-              )}
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                <button
+                  onClick={() => onEditAppointment(item)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    backgroundColor: '#1A3B8B',
+                    color: '#FFF',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✏️ Modifica / Integra
+                </button>
+                <button
+                  onClick={() => handleCancelAppointment(item.id)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    backgroundColor: 'transparent',
+                    color: '#D32F2F',
+                    border: '1px solid #D32F2F',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ❌ Annulla
+                </button>
+              </div>
             </div>
           )
         })
