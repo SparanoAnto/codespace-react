@@ -79,69 +79,117 @@ export function Auth() {
 
   if (isResettingPassword) {
     return (
-      <div style={containerStyle}>
-        <h1 style={{ textAlign: 'center', color: '#FFFFFF', marginTop: '40px' }}>Nuova Password</h1>
-        <p style={{ textAlign: 'center', color: '#AAA' }}>Inserisci la tua nuova password per il tuo account.</p>
-        {authError && <div style={errorBoxStyle}>{authError}</div>}
-        <form onSubmit={handleUpdatePassword} style={formStyle}>
-          <input 
-            type="password" 
-            placeholder="Nuova Password" 
-            value={newPassword} 
-            onChange={e => setNewPassword(e.target.value)} 
-            required 
-            style={inputStyle} 
-          />
-          <button type="submit" disabled={loading} style={btnPrimaryStyle}>
-            {loading ? 'Salvataggio...' : 'Salva Nuova Password'}
-          </button>
-        </form>
+      <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="info-card">
+          <h2 style={{ textAlign: 'center', color: '#FFFFFF', marginTop: '10px' }}>Nuova Password</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
+            Inserisci la tua nuova password per il tuo account.
+          </p>
+          {authError && <div style={errorBoxStyle}>{authError}</div>}
+          <form onSubmit={handleUpdatePassword} style={formStyle}>
+            <input 
+              type="password" 
+              placeholder="Nuova Password" 
+              value={newPassword} 
+              onChange={e => setNewPassword(e.target.value)} 
+              required 
+              style={inputStyle} 
+            />
+            <button type="submit" disabled={loading} style={btnPrimaryStyle}>
+              {loading ? 'Salvataggio...' : 'Salva Nuova Password'}
+            </button>
+          </form>
+        </div>
       </div>
     )
   }
 
   return (
-    <div style={containerStyle}>
-      <h1 style={{ textAlign: 'center', color: '#FFFFFF', marginTop: '40px', marginBottom: '0px', fontSize: '36px', letterSpacing: '2px' }}>31Th Street</h1>
-      <h4 style={{ textAlign: 'center', color: '#D32F2F', marginTop: '5px', marginBottom: '30px', fontWeight: 'bold' }}>BARBER SHOP</h4>
+    <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      
+      {/* Hero Branding */}
+      <div style={{ textAlign: 'center', marginBottom: '25px', position: 'relative', zIndex: 1 }}>
+        <h1 className="brand-title" style={{ fontSize: '3rem', justifyContent: 'center' }}>
+          31<span style={{ fontSize: '1.3rem', verticalAlign: 'super' }}>th</span> STREET
+        </h1>
+        <span className="brand-subtitle" style={{ fontSize: '2.5rem', marginTop: '-6px' }}>
+          Barber Shop
+        </span>
+      </div>
 
-      {authError && <div style={errorBoxStyle}>{authError}</div>}
+      <div className="info-card" style={{ position: 'relative', zIndex: 1 }}>
+        {authError && <div style={errorBoxStyle}>{authError}</div>}
 
-      {!isRegistering ? (
-        <form onSubmit={handleLogin} style={formStyle}>
-          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
-          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
-          <button type="submit" disabled={loading} style={btnPrimaryStyle}>
-            {loading ? 'Accesso in corso...' : 'Accedi'}
-          </button>
-          <p style={linkTextStyle}>
-            Non hai un account? <span onClick={() => setIsRegistering(true)} style={linkStyle}>Registrati</span>
-          </p>
-        </form>
-      ) : (
-        <form onSubmit={handleRegister} style={formStyle}>
-          <input type="text" placeholder="Nome" value={firstName} onChange={e => setFirstName(e.target.value)} required style={inputStyle} />
-          <input type="text" placeholder="Cognome" value={lastName} onChange={e => setLastName(e.target.value)} required style={inputStyle} />
-          <input type="number" placeholder="Età" value={age} onChange={e => setAge(e.target.value)} required style={inputStyle} />
-          <input type="tel" placeholder="Cellulare" value={phone} onChange={e => setPhone(e.target.value)} required style={inputStyle} />
-          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
-          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
-          <button type="submit" disabled={loading} style={btnPrimaryStyle}>
-            {loading ? 'Registrazione...' : 'Crea Account'}
-          </button>
-          <p style={linkTextStyle}>
-            Hai già un account? <span onClick={() => setIsRegistering(false)} style={linkStyle}>Accedi</span>
-          </p>
-        </form>
-      )}
+        {!isRegistering ? (
+          <form onSubmit={handleLogin} style={formStyle}>
+            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
+            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
+            <button type="submit" disabled={loading} style={btnPrimaryStyle}>
+              {loading ? 'Accesso in corso...' : 'Accedi'}
+            </button>
+            <p style={linkTextStyle}>
+              Non hai un account? <span onClick={() => setIsRegistering(true)} style={linkStyle}>Registrati</span>
+            </p>
+          </form>
+        ) : (
+          <form onSubmit={handleRegister} style={formStyle}>
+            <input type="text" placeholder="Nome" value={firstName} onChange={e => setFirstName(e.target.value)} required style={inputStyle} />
+            <input type="text" placeholder="Cognome" value={lastName} onChange={e => setLastName(e.target.value)} required style={inputStyle} />
+            <input type="number" placeholder="Età" value={age} onChange={e => setAge(e.target.value)} required style={inputStyle} />
+            <input type="tel" placeholder="Cellulare" value={phone} onChange={e => setPhone(e.target.value)} required style={inputStyle} />
+            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
+            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
+            <button type="submit" disabled={loading} style={btnPrimaryStyle}>
+              {loading ? 'Registrazione...' : 'Crea Account'}
+            </button>
+            <p style={linkTextStyle}>
+              Hai già un account? <span onClick={() => setIsRegistering(false)} style={linkStyle}>Accedi</span>
+            </p>
+          </form>
+        )}
+      </div>
     </div>
   )
 }
 
-const containerStyle = { backgroundColor: '#0A0A0A', color: '#FFF', minHeight: '100vh', padding: '20px', maxWidth: '450px', margin: '0 auto', fontFamily: 'sans-serif' }
-const formStyle = { display: 'flex', flexDirection: 'column', gap: '12px' }
-const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #2A2A2A', backgroundColor: '#1A1A1A', color: '#FFF', boxSizing: 'border-box' }
-const btnPrimaryStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#D32F2F', color: '#FFF', fontWeight: 'bold', cursor: 'pointer' }
-const errorBoxStyle = { background: '#D32F2F', color: '#FFF', padding: '10px', borderRadius: '6px', marginBottom: '15px' }
-const linkTextStyle = { textAlign: 'center', color: '#AAA' }
+const formStyle = { display: 'flex', flexDirection: 'column', gap: '14px' }
+
+const inputStyle = { 
+  width: '100%', 
+  padding: '12px 14px', 
+  borderRadius: '6px', 
+  border: '1px solid var(--border-color)', 
+  backgroundColor: 'rgba(15, 15, 15, 0.8)', 
+  color: '#FFF', 
+  boxSizing: 'border-box',
+  outline: 'none',
+  fontSize: '14px'
+}
+
+const btnPrimaryStyle = { 
+  width: '100%', 
+  padding: '13px', 
+  borderRadius: '6px', 
+  border: 'none', 
+  backgroundColor: 'var(--barber-red)', 
+  color: '#FFF', 
+  fontWeight: 'bold', 
+  fontSize: '0.95rem',
+  letterSpacing: '0.5px',
+  cursor: 'pointer',
+  marginTop: '5px',
+  boxShadow: '0 4px 12px rgba(211, 47, 47, 0.3)'
+}
+
+const errorBoxStyle = { 
+  background: 'rgba(211, 47, 47, 0.2)', 
+  border: '1px solid var(--barber-red)',
+  color: '#FFF', 
+  padding: '10px 14px', 
+  borderRadius: '6px', 
+  marginBottom: '15px',
+  fontSize: '13px'
+}
+
+const linkTextStyle = { textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', marginTop: '10px' }
 const linkStyle = { color: '#FFFFFF', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }
