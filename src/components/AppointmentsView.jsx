@@ -3,9 +3,17 @@ import { supabase } from '../supabaseClient'
 
 export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
   const [appointments, setAppointments] = useState([])
+  const [barbers, setBarbers] = useState([])
+  const [selectedBarberId, setSelectedBarberId] = useState('all')
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState(null)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchBarbers()
+    }
+  }, [isAdmin])
 
   useEffect(() => {
     if (userId) {
@@ -13,7 +21,12 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
     } else {
       setLoading(false)
     }
-  }, [userId, isAdmin, selectedDate])
+  }, [userId, isAdmin, selectedDate, selectedBarberId])
+
+  async function fetchBarbers() {
+    const { data } = await supabase.from('barbers').select('id, name').eq('is_active', true)
+    if (data) setBarbers(data)
+  }
 
   async function fetchAppointments() {
     setLoading(true)
@@ -48,6 +61,11 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
           .gte('start_time', startOfDay)
           .lte('start_time', endOfDay)
           .order('start_time', { ascending: true })
+
+        // Filtra per barbiere specifico se selezionato dall'admin
+        if (selectedBarberId !== 'all') {
+          query = query.eq('barber_id', selectedBarberId)
+        }
       } else {
         query = query
           .eq('user_id', userId)
@@ -96,29 +114,41 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
         <h3 style={{ margin: 0 }}>
-          {isAdmin ? '📖 Agenda Salone' : '📅 Le Tue Prenotazioni'}
+          {isAdmin ? '📖 Agenda Salone Centralizzata' : '📅 Le Tue Prenotazioni'}
         </h3>
       </div>
 
       {isAdmin && (
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '12px', color: '#AAA', display: 'block', marginBottom: '5px' }}>
-            Seleziona Data Agenda:
-          </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '6px',
-              border: '1px solid #2A2A2A',
-              backgroundColor: '#1A1A1A',
-              color: '#FFF',
-              boxSizing: 'border-box'
-            }}
-          />
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '12px', color: '#AAA', display: 'block', marginBottom: '5px' }}>
+              Data Agenda:
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={filterInputStyle}
+            />
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '12px', color: '#AAA', display: 'block', marginBottom: '5px' }}>
+              Operatore:
+            </label>
+            <select
+              value={selectedBarberId}
+              onChange={(e) => setSelectedBarberId(e.target.value)}
+              style={filterInputStyle}
+            >
+              <option value="all">💈 Tutti gli Operatori</option>
+              {barbers.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
@@ -128,14 +158,14 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
         <p style={{ color: '#D32F2F', fontSize: '14px' }}>Errore caricamento: {errorMsg}</p>
       ) : appointments.length === 0 ? (
         <p style={{ color: '#888' }}>
-          {isAdmin ? 'Nessun appuntamento attivo per questa data.' : 'Non hai ancora effettuato nessuna prenotazione attiva.'}
+          {isAdmin ? 'Nessun appuntamento attivo per i filtri selezionati.' : 'Non hai ancora effettuato nessuna prenotazione attiva.'}
         </p>
       ) : (
         appointments.map((item) => {
           const { date, time } = formatDateTime(item.start_time)
 
           const serviceList = item.appointment_services
-            ?.map(as => as.services?.name)
+            ?.map((as) => as.services?.name)
             .filter(Boolean)
             .join(', ') || 'Servizio Generico'
 
@@ -172,8 +202,9 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
                   {item.total_price ? `€${parseFloat(item.total_price).toFixed(2)}` : ''}
                 </span>
               </div>
+
               <p style={{ margin: '3px 0', fontSize: '13px', color: '#AAA' }}>
-                💈 Barbiere: {item.barbers?.name || 'Non specificato'}
+                💈 Barbiere: <strong style={{ color: '#FFF' }}>{item.barbers?.name || 'Non specificato'}</strong>
               </p>
               <p style={{ margin: '3px 0', fontSize: '13px', color: '#AAA' }}>
                 📅 Data: {date} ore {time}
@@ -219,4 +250,14 @@ export function AppointmentsView({ userId, isAdmin, onEditAppointment }) {
       )}
     </div>
   )
+}
+
+const filterInputStyle = {
+  width: '100%',
+  padding: '10px',
+  borderRadius: '6px',
+  border: '1px solid #2A2A2A',
+  backgroundColor: '#1A1A1A',
+  color: '#FFF',
+  boxSizing: 'border-box'
 }
