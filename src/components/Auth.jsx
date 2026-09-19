@@ -3,44 +3,83 @@ import { supabase } from '../supabaseClient'
 
 export function Auth() {
   const [isRegistering, setIsRegistering] = useState(false)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState(false)
-  const [newPassword, setNewPassword] = useState('')
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
   const [age, setAge] = useState('')
+  
   const [authError, setAuthError] = useState('')
+  const [authSuccess, setAuthSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Ascolta se l'utente arriva dal link di recupero email
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setIsResettingPassword(true)
+        setIsForgotPassword(false)
+        setIsRegistering(false)
       }
     })
+
+    return () => {
+      authListener?.subscription?.unsubscribe()
+    }
   }, [])
 
   async function handleLogin(e) {
     e.preventDefault()
     setAuthError('')
+    setAuthSuccess('')
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) setAuthError(error.message)
     setLoading(false)
   }
 
-  async function handleUpdatePassword(e) {
+  // 1. Invio mail di reset password
+  async function handleForgotPassword(e) {
     e.preventDefault()
     setAuthError('')
+    setAuthSuccess('')
     setLoading(true)
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+    const siteUrl = window.location.origin
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: siteUrl,
+    })
+
     if (error) {
       setAuthError(error.message)
     } else {
-      alert('Password aggiornata con successo! Ora puoi accedere.')
+      setAuthSuccess('Ti abbiamo inviato un\'email con il link per reimpostare la password!')
+    }
+    setLoading(false)
+  }
+
+  // 2. Salvataggio della nuova password (dopo aver cliccato sul link inviato via email)
+  async function handleUpdatePassword(e) {
+    e.preventDefault()
+    setAuthError('')
+    setAuthSuccess('')
+    setLoading(true)
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    
+    if (error) {
+      setAuthError(error.message)
+    } else {
+      alert('Password aggiornata con successo! Verrai reindirizzato al login.')
       setIsResettingPassword(false)
+      setNewPassword('')
     }
     setLoading(false)
   }
@@ -48,6 +87,7 @@ export function Auth() {
   async function handleRegister(e) {
     e.preventDefault()
     setAuthError('')
+    setAuthSuccess('')
     setLoading(true)
 
     try {
@@ -77,13 +117,14 @@ export function Auth() {
     }
   }
 
+  // VISTA 1: Form Impostazione Nuova Password (dalla mail)
   if (isResettingPassword) {
     return (
       <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div className="info-card">
           <h2 style={{ textAlign: 'center', color: '#FFFFFF', marginTop: '10px' }}>Nuova Password</h2>
           <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-            Inserisci la tua nuova password per il tuo account.
+            Inserisci la tua nuova password.
           </p>
           {authError && <div style={errorBoxStyle}>{authError}</div>}
           <form onSubmit={handleUpdatePassword} style={formStyle}>
@@ -104,6 +145,40 @@ export function Auth() {
     )
   }
 
+  // VISTA 2: Form Richiesta Reset via Email
+  if (isForgotPassword) {
+    return (
+      <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="info-card">
+          <h2 style={{ textAlign: 'center', color: '#FFFFFF', marginTop: '10px' }}>Recupera Password</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', marginBottom: '15px' }}>
+            Inserisci la tua email. Ti invieremo un link per reimpostare la password.
+          </p>
+          {authError && <div style={errorBoxStyle}>{authError}</div>}
+          {authSuccess && <div style={successBoxStyle}>{authSuccess}</div>}
+          
+          <form onSubmit={handleForgotPassword} style={formStyle}>
+            <input 
+              type="email" 
+              placeholder="Email" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              required 
+              style={inputStyle} 
+            />
+            <button type="submit" disabled={loading} style={btnPrimaryStyle}>
+              {loading ? 'Invio in corso...' : 'Invia Link di Recupero'}
+            </button>
+            <p style={linkTextStyle}>
+              Torna al <span onClick={() => { setIsForgotPassword(false); setAuthError(''); setAuthSuccess(''); }} style={linkStyle}>Login</span>
+            </p>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
+  // VISTA 3: Login e Registrazione Standard
   return (
     <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
       
@@ -124,11 +199,21 @@ export function Auth() {
           <form onSubmit={handleLogin} style={formStyle}>
             <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
             <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
+            
+            <div style={{ textAlign: 'right', marginTop: '-5px' }}>
+              <span 
+                onClick={() => { setIsForgotPassword(true); setAuthError(''); }} 
+                style={{ ...linkStyle, fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'normal' }}
+              >
+                Password dimenticata?
+              </span>
+            </div>
+
             <button type="submit" disabled={loading} style={btnPrimaryStyle}>
               {loading ? 'Accesso in corso...' : 'Accedi'}
             </button>
             <p style={linkTextStyle}>
-              Non hai un account? <span onClick={() => setIsRegistering(true)} style={linkStyle}>Registrati</span>
+              Non hai un account? <span onClick={() => { setIsRegistering(true); setAuthError(''); }} style={linkStyle}>Registrati</span>
             </p>
           </form>
         ) : (
@@ -143,7 +228,7 @@ export function Auth() {
               {loading ? 'Registrazione...' : 'Crea Account'}
             </button>
             <p style={linkTextStyle}>
-              Hai già un account? <span onClick={() => setIsRegistering(false)} style={linkStyle}>Accedi</span>
+              Hai già un account? <span onClick={() => { setIsRegistering(false); setAuthError(''); }} style={linkStyle}>Accedi</span>
             </p>
           </form>
         )}
@@ -189,6 +274,17 @@ const errorBoxStyle = {
   borderRadius: '6px', 
   marginBottom: '15px',
   fontSize: '13px'
+}
+
+const successBoxStyle = { 
+  background: 'rgba(46, 125, 50, 0.2)', 
+  border: '1px solid #2e7d32',
+  color: '#81c784', 
+  padding: '10px 14px', 
+  borderRadius: '6px', 
+  marginBottom: '15px',
+  fontSize: '13px',
+  textAlign: 'center'
 }
 
 const linkTextStyle = { textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', marginTop: '10px' }
