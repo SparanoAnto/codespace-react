@@ -130,6 +130,35 @@ export default function App() {
     setPwdLoading(false)
   }
 
+  // Funzione per la cancellazione dell'account (Diritto all'Oblio GDPR)
+  async function handleDeleteAccount() {
+    const confirmDelete = window.confirm(
+      "Sei sicuro di voler eliminare definitivamente il tuo account? Questa azione cancellerà tutti i tuoi dati e non potrà essere annullata."
+    )
+
+    if (confirmDelete) {
+      try {
+        setLoading(true)
+        
+        // 1. Cancella il profilo dalla tabella 'profiles'
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', session.user.id)
+
+        if (error) throw error
+
+        // 2. Disconnetti l'utente
+        await supabase.auth.signOut()
+        alert("Il tuo account ed i tuoi dati personali sono stati eliminati con successo.")
+      } catch (err) {
+        alert("Errore durante l'eliminazione dell'account: " + err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
   const handleStartEdit = (appointment) => {
     setEditingAppointment(appointment)
     setActiveTab('services')
@@ -327,8 +356,29 @@ export default function App() {
 
               <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '20px 0' }} />
 
-              <button onClick={() => supabase.auth.signOut()} className="btn-danger" style={{ width: '100%' }}>
+              <button 
+                onClick={() => supabase.auth.signOut()} 
+                className="btn-danger" 
+                style={{ width: '100%', marginBottom: '12px' }}
+              >
                 Disconnettiti
+              </button>
+
+              <button 
+                onClick={handleDeleteAccount} 
+                style={{ 
+                  width: '100%', 
+                  padding: '10px', 
+                  borderRadius: '6px', 
+                  border: 'none', 
+                  backgroundColor: 'transparent', 
+                  color: 'var(--text-muted)', 
+                  fontSize: '12px', 
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+              >
+                ⚠️ Elimina il mio account e i dati
               </button>
             </div>
           </div>
