@@ -5,6 +5,7 @@ import { BookingView } from './components/BookingView'
 import { Navigation } from './components/Navigation'
 import { AdminApprovals } from './components/AdminApprovals'
 import { AppointmentsView } from './components/AppointmentsView'
+import { AdminReports } from './components/AdminReports' // 1. Importato AdminReports
 import './App.css'
 
 export default function App() {
@@ -12,6 +13,9 @@ export default function App() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('services')
+
+  // Stato per navigare tra Approvazioni e Report dentro la sezione Admin
+  const [adminSubTab, setAdminSubTab] = useState('approvals')
 
   const [services, setServices] = useState([])
   const [barbers, setBarbers] = useState([])
@@ -114,7 +118,7 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Barra grigia in cima come da immagine */}
+      {/* Barra grigia in cima */}
       <div className="top-banner" />
 
       {/* Header */}
@@ -175,10 +179,57 @@ export default function App() {
           </div>
         )}
 
+        {/* Tab Pannello Admin con sotto-schede per Gestione e Report */}
         {activeTab === 'admin' && profile?.role === 'admin' && (
           <div>
-            <h3 className="section-title">Pannello Admin</h3>
-            <AdminApprovals onApprovalChange={fetchPendingCount} />
+            {/* Menu Sotto-schede Admin */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+              <button
+                onClick={() => setAdminSubTab('approvals')}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: adminSubTab === 'approvals' ? '1px solid var(--barber-red)' : '1px solid var(--border-color)',
+                  backgroundColor: adminSubTab === 'approvals' ? 'var(--barber-red)' : 'rgba(24, 24, 24, 0.85)',
+                  color: '#FFF',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                📋 Approvazioni
+              </button>
+
+              <button
+                onClick={() => setAdminSubTab('reports')}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: adminSubTab === 'reports' ? '1px solid var(--barber-red)' : '1px solid var(--border-color)',
+                  backgroundColor: adminSubTab === 'reports' ? 'var(--barber-red)' : 'rgba(24, 24, 24, 0.85)',
+                  color: '#FFF',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                📊 Report & Stats
+              </button>
+            </div>
+
+            {/* Switch tra viste admin */}
+            {adminSubTab === 'approvals' ? (
+              <div>
+                <h3 className="section-title">Pannello Approvazioni</h3>
+                <AdminApprovals onApprovalChange={fetchPendingCount} />
+              </div>
+            ) : (
+              <AdminReports />
+            )}
           </div>
         )}
       </div>
