@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-export function Auth() {
+export function Auth({ isResettingPasswordProps = false, onPasswordUpdated }) {
   const [isRegistering, setIsRegistering] = useState(false)
   const [isForgotPassword, setIsForgotPassword] = useState(false)
-  const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(isResettingPasswordProps)
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,20 +19,9 @@ export function Auth() {
   const [authSuccess, setAuthSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Ascolta se l'utente arriva dal link di recupero email
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsResettingPassword(true)
-        setIsForgotPassword(false)
-        setIsRegistering(false)
-      }
-    })
-
-    return () => {
-      authListener?.subscription?.unsubscribe()
-    }
-  }, [])
+    setIsResettingPassword(isResettingPasswordProps)
+  }, [isResettingPasswordProps])
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -44,7 +33,6 @@ export function Auth() {
     setLoading(false)
   }
 
-  // 1. Invio mail di reset password
   async function handleForgotPassword(e) {
     e.preventDefault()
     setAuthError('')
@@ -65,7 +53,6 @@ export function Auth() {
     setLoading(false)
   }
 
-  // 2. Salvataggio della nuova password (dopo aver cliccato sul link inviato via email)
   async function handleUpdatePassword(e) {
     e.preventDefault()
     setAuthError('')
@@ -77,9 +64,9 @@ export function Auth() {
     if (error) {
       setAuthError(error.message)
     } else {
-      alert('Password aggiornata con successo! Verrai reindirizzato al login.')
+      alert('Password aggiornata con successo!')
       setIsResettingPassword(false)
-      setNewPassword('')
+      if (onPasswordUpdated) onPasswordUpdated()
     }
     setLoading(false)
   }
@@ -123,8 +110,8 @@ export function Auth() {
       <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div className="info-card">
           <h2 style={{ textAlign: 'center', color: '#FFFFFF', marginTop: '10px' }}>Nuova Password</h2>
-          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-            Inserisci la tua nuova password.
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', marginBottom: '15px' }}>
+            Inserisci la tua nuova password per il tuo account.
           </p>
           {authError && <div style={errorBoxStyle}>{authError}</div>}
           <form onSubmit={handleUpdatePassword} style={formStyle}>
@@ -182,7 +169,6 @@ export function Auth() {
   return (
     <div className="app-container" style={{ padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
       
-      {/* Hero Branding */}
       <div style={{ textAlign: 'center', marginBottom: '25px', position: 'relative', zIndex: 1 }}>
         <h1 className="brand-title" style={{ fontSize: '3rem', justifyContent: 'center' }}>
           31<span style={{ fontSize: '1.3rem', verticalAlign: 'super' }}>th</span> STREET
