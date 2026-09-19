@@ -1,6 +1,37 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
+/**
+ * Funzione helper per verificare se un appuntamento può essere annullato.
+ * @param {string|Date} startTime - Data/ora di inizio dell'appuntamento
+ * @param {boolean} isAdmin - Se true, ignora il limite dei 15 minuti
+ * @returns {{ allowed: boolean, reason?: string }}
+ */
+export function canCancelAppointment(startTime, isAdmin) {
+  if (isAdmin) return { allowed: true }
+
+  const now = new Date().getTime()
+  const appointmentStart = new Date(startTime).getTime()
+  const fifteenMinutesInMs = 15 * 60 * 1000
+  const timeDifference = appointmentStart - now
+
+  if (timeDifference <= 0) {
+    return {
+      allowed: false,
+      reason: "Impossibile annullare un appuntamento già passato o in corso."
+    }
+  }
+
+  if (timeDifference < fifteenMinutesInMs) {
+    return {
+      allowed: false,
+      reason: "Non puoi annullare l'appuntamento a meno di 15 minuti dall'orario prenotato. Contatta direttamente il salone."
+    }
+  }
+
+  return { allowed: true }
+}
+
 export function BookingView({ services, barbers, userId, isAdmin, editingAppointment, onBookingSuccess, onCancelEdit }) {
   const [selectedServices, setSelectedServices] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
@@ -48,8 +79,9 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
   const totalDuration = selectedServices.reduce((acc, s) => acc + s.duration_minutes, 0)
   const totalPrice = selectedServices.reduce((acc, s) => acc + parseFloat(s.price), 0)
 
+  // Array degli orari con virgola corretta tra '14:00' e '14:30'
   const allTimeSlots = [
-    '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00'
+    '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00',
     '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'
   ]
 
@@ -109,6 +141,39 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
     }
 
     return true
+  }
+
+  // Gestione dell'annullamento dell'appuntamento esistente
+  async function handleCancelExistingAppointment() {
+    if (!editingAppointment) return
+
+    const check = canCancelAppointment(editingAppointment.start_time, isAdmin)
+    if (!check.allowed) {
+      alert(check.reason)
+      return
+    }
+
+    if (!window.confirm("Sei sicuro di voler annullare definitivamente questo appuntamento?")) return
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', editingAppointment.id)
+
+      if (error) throw error
+
+      alert("Appuntamento annullato con successo!")
+      setSelectedServices([])
+      setSelectedDate('')
+      setSelectedBarber(null)
+      setSelectedTime('')
+      setCustomClientName('')
+      if (onCancelEdit) onCancelEdit()
+      if (onBookingSuccess) onBookingSuccess()
+    } catch (err) {
+      alert("Errore nell'annullamento: " + err.message)
+    }
   }
 
   async function handleConfirmBooking() {
@@ -212,7 +277,20 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
       {editingAppointment && (
         <div style={{ backgroundColor: 'rgba(211, 47, 47, 0.15)', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--barber-red)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: 'bold', color: 'var(--barber-red)', fontSize: '0.9rem' }}>✏️ Modifica Appuntamento</span>
-          <button onClick={onCancelEdit} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}>Annulla ✖</button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              onClick={handleCancelExistingAppointment} 
+              style={{ background: 'transparent', border: 'none', color: 'var(--barber-red)', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', textDecoration: 'underline' }}
+            >
+              Annulla Appuntamento
+            </button>
+            <button 
+              onClick={onCancelEdit} 
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}
+            >
+              Chiudi ✖
+            </button>
+          </div>
         </div>
       )}
 
