@@ -1,31 +1,142 @@
-.App {
-  text-align: center;
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;600;800;900&display=swap');
+
+:root {
+  --bg-dark: #121212;
+  --bg-top-bar: #333333;
+  --bg-card: rgba(26, 26, 26, 0.85);
+  --text-main: #ffffff;
+  --text-muted: #b0b0b0;
+  --barber-red: #d32f2f;
+  --barber-blue: #1976d2;
+  --border-color: #2e2e2e;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Montserrat', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-.App-header {
-  background-color: #282c34;
+/* Contenitore principale con filigrana logo grigia di sfondo */
+.app-container {
+  background-color: #121212;
+  /* Riproduce la filigrana grigia del logo di sfondo */
+  background-image: 
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 70%),
+    linear-gradient(180deg, #1f1f1f 0%, #101010 100%);
+  color: var(--text-main);
   min-height: 100vh;
+  padding-bottom: 90px;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 0 30px rgba(0,0,0,0.8);
+}
+
+/* Sfondo watermark testuale "31 STREET" */
+.app-container::before {
+  content: "31 STREET";
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-10deg);
+  font-size: 5.5rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.03);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Fascia Superiore Grigia (come da foto) */
+.top-banner {
+  background-color: var(--bg-top-bar);
+  height: 12px;
+  width: 100%;
+}
+
+/* Header Brand */
+.header-brand {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  background-color: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(5px);
+  position: relative;
+  z-index: 1;
 }
 
-.App-link {
-  color: #61dafb;
+.brand-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  font-size: 1.7rem;
+  letter-spacing: -1px;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1;
 }
 
-.heart {
-  color: #ff0000;
+.brand-subtitle {
+  font-family: 'Great Vibes', cursive;
+  font-size: 1.9rem;
+  color: #ffffff;
+  margin-top: -4px;
+  display: block;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
-.small {
-  font-size: 0.75rem;
+/* Titoli Sezioni */
+.section-title {
+  font-family: 'Great Vibes', cursive;
+  font-size: 2.3rem;
+  color: #ffffff;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: normal;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  border-bottom: 2px solid #333;
+  display: inline-block;
+  padding-bottom: 2px;
+}
+
+/* Badge e Bottoni */
+.admin-badge {
+  background: var(--barber-blue);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.btn-danger {
+  background-color: transparent;
+  border: 1px solid var(--barber-red);
+  color: var(--barber-red);
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  background-color: var(--barber-red);
+  color: #ffffff;
+}
+
+/* Card Contenitore */
+.info-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 10px;
+  backdrop-filter: blur(5px);
 }
