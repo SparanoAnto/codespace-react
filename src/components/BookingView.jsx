@@ -128,6 +128,7 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
     try {
       if (editingAppointment) {
+        // 1. Aggiorna la tabella appointments
         const { error: updateError } = await supabase
           .from('appointments')
           .update({
@@ -141,16 +142,29 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         if (updateError) throw updateError
 
-        await supabase.from('appointment_services').delete().eq('appointment_id', editingAppointment.id)
+        // 2. Rimuovi i vecchi servizi associati
+        const { error: delError } = await supabase
+          .from('appointment_services')
+          .delete()
+          .eq('appointment_id', editingAppointment.id)
 
+        if (delError) throw delError
+
+        // 3. Inserisci i nuovi servizi associati
         const joins = selectedServices.map(s => ({
           appointment_id: editingAppointment.id,
           service_id: s.id
         }))
-        await supabase.from('appointment_services').insert(joins)
+
+        const { error: insertServiceError } = await supabase
+          .from('appointment_services')
+          .insert(joins)
+
+        if (insertServiceError) throw insertServiceError
 
         alert("Appuntamento modificato con successo!")
       } else {
+        // 1. Inserisci il nuovo appuntamento in appointments
         const newAppointment = {
           user_id: userId,
           barber_id: selectedBarber.id,
@@ -172,16 +186,22 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         if (appError) throw appError
 
+        // 2. Associa i servizi scelti nella tabella appointment_services
         const joins = selectedServices.map(s => ({
           appointment_id: appData.id,
           service_id: s.id
         }))
 
-        await supabase.from('appointment_services').insert(joins)
+        const { error: joinError } = await supabase
+          .from('appointment_services')
+          .insert(joins)
+
+        if (joinError) throw joinError
 
         alert("Prenotazione confermata con successo!")
       }
 
+      // Reset stati
       setSelectedServices([])
       setSelectedDate('')
       setSelectedBarber(null)
