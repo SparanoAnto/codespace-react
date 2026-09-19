@@ -14,8 +14,13 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('services')
 
-  // Stato per il reset password
+  // Stato per il reset password da link email
   const [isResettingPassword, setIsResettingPassword] = useState(false)
+
+  // Stati per il cambio password nel profilo
+  const [newPassword, setNewPassword] = useState('')
+  const [pwdLoading, setPwdLoading] = useState(false)
+  const [pwdMessage, setPwdMessage] = useState({ type: '', text: '' })
 
   // Sub-tab Admin
   const [adminSubTab, setAdminSubTab] = useState('approvals')
@@ -101,6 +106,28 @@ export default function App() {
     if (bData) setBarbers(bData)
   }
 
+  // Funzione per il cambio password dalla sezione Profilo
+  async function handleChangePassword(e) {
+    e.preventDefault()
+    setPwdMessage({ type: '', text: '' })
+
+    if (!newPassword || newPassword.length < 6) {
+      setPwdMessage({ type: 'error', text: 'La password deve contenere almeno 6 caratteri.' })
+      return
+    }
+
+    setPwdLoading(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+    if (error) {
+      setPwdMessage({ type: 'error', text: error.message })
+    } else {
+      setPwdMessage({ type: 'success', text: 'Password aggiornata con successo!' })
+      setNewPassword('')
+    }
+    setPwdLoading(false)
+  }
+
   const handleStartEdit = (appointment) => {
     setEditingAppointment(appointment)
     setActiveTab('services')
@@ -120,14 +147,13 @@ export default function App() {
     )
   }
 
-  // 🔴 PRIORITÀ ASSOLUTA: Se nell'URL o negli eventi c'è una richiesta di reset, mostra la form per la nuova password
+  // 🔴 PRIORITÀ ASSOLUTA: Reset Password da email
   if (isResettingPassword) {
     return (
       <Auth 
         isResettingPasswordProps={true} 
         onPasswordUpdated={() => {
           setIsResettingPassword(false)
-          // Puliamo l'URL rimuovendo l'hash/parametri di recupero
           window.history.replaceState({}, document.title, window.location.pathname)
         }} 
       />
@@ -200,6 +226,7 @@ export default function App() {
           />
         )}
 
+        {/* TAB PROFILO AGGIORNATO */}
         {activeTab === 'profile' && (
           <div>
             <h3 className="section-title">Il Tuo Profilo</h3>
@@ -207,7 +234,63 @@ export default function App() {
               <p style={{ margin: '10px 0' }}><strong>Nome:</strong> {profile?.first_name} {profile?.last_name}</p>
               <p style={{ margin: '10px 0' }}><strong>Email:</strong> {profile?.email}</p>
               <p style={{ margin: '10px 0' }}><strong>Telefono:</strong> {profile?.phone}</p>
-              <button onClick={() => supabase.auth.signOut()} className="btn-danger" style={{ marginTop: '20px' }}>
+              
+              <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '20px 0' }} />
+
+              <h4 style={{ color: '#FFF', margin: '0 0 10px 0' }}>Cambia Password</h4>
+              
+              {pwdMessage.text && (
+                <div style={{
+                  padding: '10px',
+                  borderRadius: '6px',
+                  marginBottom: '10px',
+                  fontSize: '13px',
+                  backgroundColor: pwdMessage.type === 'error' ? 'rgba(211, 47, 47, 0.2)' : 'rgba(46, 125, 50, 0.2)',
+                  border: pwdMessage.type === 'error' ? '1px solid var(--barber-red)' : '1px solid #2e7d32',
+                  color: pwdMessage.type === 'error' ? '#FFF' : '#81c784'
+                }}>
+                  {pwdMessage.text}
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input 
+                  type="password" 
+                  placeholder="Nuova Password" 
+                  value={newPassword} 
+                  onChange={e => setNewPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'rgba(15, 15, 15, 0.8)',
+                    color: '#FFF',
+                    boxSizing: 'border-box',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+                <button 
+                  type="submit" 
+                  disabled={pwdLoading}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: 'var(--barber-red)',
+                    color: '#FFF',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {pwdLoading ? 'Aggiornamento...' : 'Aggiorna Password'}
+                </button>
+              </form>
+
+              <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '20px 0' }} />
+
+              <button onClick={() => supabase.auth.signOut()} className="btn-danger" style={{ width: '100%' }}>
                 Disconnettiti
               </button>
             </div>
