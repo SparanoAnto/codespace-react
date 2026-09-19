@@ -6,7 +6,6 @@ import { Navigation } from './components/Navigation'
 import { AdminApprovals } from './components/AdminApprovals'
 import { AppointmentsView } from './components/AppointmentsView'
 
-
 export default function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -108,6 +107,7 @@ export default function App() {
             services={services} 
             barbers={barbers} 
             userId={session.user.id} 
+            isAdmin={profile?.role === 'admin'}
             onBookingSuccess={() => setActiveTab('appointments')} 
           />
         )}
@@ -122,7 +122,10 @@ export default function App() {
         )}
 
         {activeTab === 'appointments' && (
-          <AppointmentsView userId={session.user.id} />
+          <AppointmentsView 
+            userId={session.user.id} 
+            isAdmin={profile?.role === 'admin'}
+          />
         )}
 
         {activeTab === 'profile' && (
