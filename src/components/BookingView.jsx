@@ -128,7 +128,6 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
     try {
       if (editingAppointment) {
-        // 1. Aggiorna la tabella appointments
         const { error: updateError } = await supabase
           .from('appointments')
           .update({
@@ -142,7 +141,6 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         if (updateError) throw updateError
 
-        // 2. Rimuovi i vecchi servizi associati
         const { error: delError } = await supabase
           .from('appointment_services')
           .delete()
@@ -150,7 +148,6 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         if (delError) throw delError
 
-        // 3. Inserisci i nuovi servizi associati
         const joins = selectedServices.map(s => ({
           appointment_id: editingAppointment.id,
           service_id: s.id
@@ -164,7 +161,6 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         alert("Appuntamento modificato con successo!")
       } else {
-        // 1. Inserisci il nuovo appuntamento in appointments
         const newAppointment = {
           user_id: userId,
           barber_id: selectedBarber.id,
@@ -186,7 +182,6 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
         if (appError) throw appError
 
-        // 2. Associa i servizi scelti nella tabella appointment_services
         const joins = selectedServices.map(s => ({
           appointment_id: appData.id,
           service_id: s.id
@@ -201,7 +196,6 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
         alert("Prenotazione confermata con successo!")
       }
 
-      // Reset stati
       setSelectedServices([])
       setSelectedDate('')
       setSelectedBarber(null)
@@ -216,15 +210,15 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
   return (
     <div>
       {editingAppointment && (
-        <div style={{ backgroundColor: '#2C1212', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #D32F2F', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 'bold', color: '#D32F2F' }}>✏️ Modifica Appuntamento</span>
-          <button onClick={onCancelEdit} style={{ background: 'transparent', border: 'none', color: '#AAA', cursor: 'pointer', fontSize: '14px' }}>Annulla Modifica ✖</button>
+        <div style={{ backgroundColor: 'rgba(211, 47, 47, 0.15)', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--barber-red)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 'bold', color: 'var(--barber-red)', fontSize: '0.9rem' }}>✏️ Modifica Appuntamento</span>
+          <button onClick={onCancelEdit} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}>Annulla ✖</button>
         </div>
       )}
 
       {isAdmin && (
-        <div style={{ backgroundColor: '#1A2332', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #1A3B8B' }}>
-          <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#64B5F6', display: 'block', marginBottom: '6px' }}>
+        <div className="info-card" style={{ marginBottom: '20px', borderColor: 'var(--barber-blue)' }}>
+          <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#64B5F6', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             👑 Prenotazione per conto di un cliente (Opzionale):
           </label>
           <input
@@ -232,31 +226,33 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
             placeholder="Es: Mario Rossi (Telefonata)"
             value={customClientName}
             onChange={(e) => setCustomClientName(e.target.value)}
-            style={{ ...inputStyle, backgroundColor: '#0D1B2A', border: '1px solid #1A3B8B' }}
+            style={{ ...inputStyle, backgroundColor: 'rgba(15, 15, 15, 0.9)', border: '1px solid var(--border-color)' }}
           />
         </div>
       )}
 
-      <h3>✂️ 1. Seleziona Servizi</h3>
+      <h3 className="section-title">1. Seleziona Servizi</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
         {services.map(s => {
           const isSelected = selectedServices.some(item => item.id === s.id)
           return (
             <div key={s.id} onClick={() => toggleService(s)} style={{
-              padding: '12px',
+              padding: '14px 16px',
               borderRadius: '8px',
-              border: isSelected ? '2px solid #D32F2F' : '1px solid #2A2A2A',
-              backgroundColor: isSelected ? '#2C1212' : '#1A1A1A',
+              border: isSelected ? '1px solid var(--barber-red)' : '1px solid var(--border-color)',
+              backgroundColor: isSelected ? 'rgba(211, 47, 47, 0.15)' : 'rgba(24, 24, 24, 0.85)',
               cursor: 'pointer',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              boxShadow: isSelected ? '0 0 12px rgba(211, 47, 47, 0.2)' : 'none',
+              transition: 'all 0.2s ease'
             }}>
               <div>
-                <strong>{s.name}</strong>
-                <div style={{ fontSize: '12px', color: '#AAA' }}>{s.duration_minutes} min</div>
+                <strong style={{ fontSize: '1rem', color: '#ffffff' }}>{s.name}</strong>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>⏱ {s.duration_minutes} min</div>
               </div>
-              <div style={{ color: '#D32F2F', fontWeight: 'bold' }}>€{parseFloat(s.price).toFixed(2)}</div>
+              <div style={{ color: 'var(--barber-red)', fontWeight: '800', fontSize: '1.1rem' }}>€{parseFloat(s.price).toFixed(2)}</div>
             </div>
           )
         })}
@@ -264,35 +260,37 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
       {selectedServices.length > 0 && (
         <>
-          <div style={{ padding: '12px', background: '#1A1A1A', borderLeft: '4px solid #D32F2F', borderRadius: '4px', marginBottom: '20px' }}>
-            <strong>Riepilogo: {totalDuration} min | €{totalPrice.toFixed(2)}</strong>
+          <div style={{ padding: '12px 16px', background: 'rgba(30, 30, 30, 0.9)', borderLeft: '4px solid var(--barber-red)', borderRadius: '6px', marginBottom: '25px' }}>
+            <strong style={{ color: '#FFF' }}>Riepilogo: {totalDuration} min | €{totalPrice.toFixed(2)}</strong>
           </div>
 
-          <h3>📅 2. Scegli la Data</h3>
+          <h3 className="section-title">2. Scegli la Data</h3>
           <input 
             type="date" 
             min={todayString}
             value={selectedDate} 
             onChange={e => setSelectedDate(e.target.value)} 
-            style={inputStyle} 
+            style={{ ...inputStyle, marginBottom: '25px' }} 
           />
 
           {selectedDate && (
             <>
-              <h3 style={{ marginTop: '20px' }}>💈 3. Scegli l'Operatore</h3>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+              <h3 className="section-title">3. Scegli l'Operatore</h3>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '25px' }}>
                 {barbers.map(b => (
                   <button key={b.id} onClick={() => setSelectedBarber(b)} style={{
                     flex: 1,
                     padding: '12px',
-                    borderRadius: '6px',
-                    border: selectedBarber?.id === b.id ? '2px solid #1A3B8B' : '1px solid #2A2A2A',
-                    backgroundColor: selectedBarber?.id === b.id ? '#10224D' : '#1A1A1A',
+                    borderRadius: '8px',
+                    border: selectedBarber?.id === b.id ? '2px solid var(--barber-blue)' : '1px solid var(--border-color)',
+                    backgroundColor: selectedBarber?.id === b.id ? 'rgba(25, 118, 210, 0.2)' : 'rgba(24, 24, 24, 0.85)',
                     color: '#FFF',
                     cursor: 'pointer',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s ease'
                   }}>
-                    👨‍🦳 {b.name}
+                    💈 {b.name}
                   </button>
                 ))}
               </div>
@@ -301,9 +299,9 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
 
           {selectedBarber && (
             <>
-              <h3>🕒 4. Seleziona Orario</h3>
+              <h3 className="section-title">4. Seleziona Orario</h3>
               {loadingSlots ? (
-                <p style={{ color: '#AAA' }}>Verifica disponibilità orari in corso...</p>
+                <p style={{ color: 'var(--text-muted)' }}>Verifica disponibilità orari in corso...</p>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '25px' }}>
                   {allTimeSlots.map(slot => {
@@ -316,17 +314,20 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
                         disabled={!available}
                         onClick={() => setSelectedTime(slot)}
                         style={{
-                          padding: '10px',
+                          padding: '12px 8px',
                           borderRadius: '6px',
-                          border: isSelected ? '2px solid #D32F2F' : '1px solid #2A2A2A',
+                          border: isSelected ? '1px solid var(--barber-red)' : '1px solid var(--border-color)',
                           backgroundColor: !available
-                            ? '#2A2A2A'
+                            ? '#1a1a1a'
                             : isSelected
-                            ? '#D32F2F'
-                            : '#1A1A1A',
-                          color: !available ? '#555' : '#FFF',
+                            ? 'var(--barber-red)'
+                            : 'rgba(30, 30, 30, 0.8)',
+                          color: !available ? '#444' : '#FFF',
                           cursor: !available ? 'not-allowed' : 'pointer',
-                          textDecoration: !available ? 'line-through' : 'none'
+                          textDecoration: !available ? 'line-through' : 'none',
+                          fontWeight: isSelected ? 'bold' : '500',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.15s ease'
                         }}
                       >
                         {slot}
@@ -340,9 +341,18 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
                 onClick={handleConfirmBooking} 
                 disabled={!selectedTime}
                 style={{
-                  ...btnPrimaryStyle,
-                  backgroundColor: !selectedTime ? '#444' : '#D32F2F',
-                  cursor: !selectedTime ? 'not-allowed' : 'pointer'
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: !selectedTime ? '#333' : 'var(--barber-red)',
+                  color: !selectedTime ? '#777' : '#FFF',
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  letterSpacing: '0.5px',
+                  cursor: !selectedTime ? 'not-allowed' : 'pointer',
+                  boxShadow: !selectedTime ? 'none' : '0 4px 15px rgba(211, 47, 47, 0.4)',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 {editingAppointment ? "Salva Modifiche Appuntamento" : "Conferma Prenotazione"}
@@ -355,5 +365,14 @@ export function BookingView({ services, barbers, userId, isAdmin, editingAppoint
   )
 }
 
-const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #2A2A2A', backgroundColor: '#1A1A1A', color: '#FFF', boxSizing: 'border-box' }
-const btnPrimaryStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#D32F2F', color: '#FFF', fontWeight: 'bold', cursor: 'pointer' }
+const inputStyle = { 
+  width: '100%', 
+  padding: '12px 14px', 
+  borderRadius: '6px', 
+  border: '1px solid var(--border-color)', 
+  backgroundColor: 'rgba(24, 24, 24, 0.85)', 
+  color: '#FFF', 
+  boxSizing: 'border-box',
+  outline: 'none',
+  fontSize: '14px'
+}
