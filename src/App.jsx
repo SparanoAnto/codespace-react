@@ -130,8 +130,14 @@ export default function App() {
     setPwdLoading(false)
   }
 
-  // Funzione per la cancellazione dell'account (Diritto all'Oblio GDPR)
+  // Funzione per la cancellazione dell'account (Diritto all'Oblio GDPR - SOLO CLIENTI)
   async function handleDeleteAccount() {
+    // Blocco di sicurezza lato JS in caso di tentativi non autorizzati
+    if (profile?.role === 'admin') {
+      alert("Gli account Amministratore non possono essere eliminati dall'applicazione.")
+      return
+    }
+
     const confirmDelete = window.confirm(
       "Sei sicuro di voler eliminare definitivamente il tuo account? Questa azione cancellerà tutti i tuoi dati e non potrà essere annullata."
     )
@@ -364,22 +370,25 @@ export default function App() {
                 Disconnettiti
               </button>
 
-              <button 
-                onClick={handleDeleteAccount} 
-                style={{ 
-                  width: '100%', 
-                  padding: '10px', 
-                  borderRadius: '6px', 
-                  border: 'none', 
-                  backgroundColor: 'transparent', 
-                  color: 'var(--text-muted)', 
-                  fontSize: '12px', 
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
-              >
-                ⚠️ Elimina il mio account e i dati
-              </button>
+              {/* Visibile esclusivamente ai clienti, nascosto per gli account admin */}
+              {profile?.role !== 'admin' && (
+                <button 
+                  onClick={handleDeleteAccount} 
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px', 
+                    borderRadius: '6px', 
+                    border: 'none', 
+                    backgroundColor: 'transparent', 
+                    color: 'var(--text-muted)', 
+                    fontSize: '12px', 
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  ⚠️ Elimina il mio account e i dati
+                </button>
+              )}
             </div>
           </div>
         )}
